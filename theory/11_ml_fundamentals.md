@@ -87,6 +87,51 @@ limited labelled data.
 - Vanishing/exploding gradients → normalisation (batch/layer norm), residual connections, gradient
   clipping, ReLU-family activations.
 
+## Metrics by example
+
+1 000 transactions, 50 of them fraud. The model flags 80; 40 of those are real fraud.
+
+| | Predicted fraud | Predicted OK |
+|---|---|---|
+| **Fraud (50)** | TP = 40 | FN = 10 |
+| **OK (950)** | FP = 40 | TN = 910 |
+
+- Precision = 40 / 80 = **0.50** — half the alerts are false.
+- Recall = 40 / 50 = **0.80** — 20 % of fraud is missed.
+- F1 = 2·0.5·0.8 / 1.3 ≈ **0.62**.
+- Accuracy = (40 + 910) / 1000 = **0.95** — yet a model that flags *nothing* scores 0.95 too.
+- FPR = 40 / 950 ≈ 0.04 (x-axis of the ROC curve).
+
+## Calibration
+
+A model is **calibrated** if, among predictions of 0.8, about 80 % are positive. Needed when
+probabilities feed decisions (expected loss, pricing, bidding). Check with a reliability diagram /
+log loss; fix with **Platt scaling** or **isotonic regression**. Down-sampling the majority class
+distorts probabilities — re-weight or re-calibrate afterwards.
+
+## Clustering and unsupervised evaluation
+
+No labels → judge clusters with **silhouette score**, **Davies-Bouldin** (lower is better), the
+**elbow** of within-cluster distance vs k — and, most importantly, whether segments are actionable for the
+business. Scale features first for distance-based methods (k-means).
+
+## Recommendation systems basics
+
+| Approach | Idea | Weakness |
+|---|---|---|
+| **Content-based** | Recommend items similar to what the user liked (item features) | Narrow, needs item features |
+| **Collaborative filtering** (matrix factorization) | Users who behaved alike like alike items | **Cold start** for new users/items |
+| **Hybrid / two-tower** | Learn user and item embeddings from features + interactions; retrieve candidates, then **rank** | More complex |
+
+Cold start fixes: popularity/trending, content features, asking for preferences at onboarding.
+**Implicit feedback** (clicks, watch time) is plentiful but noisy; **explicit** (ratings) is sparse.
+
+## Cross-validation and the test set
+
+k-fold cross-validation gives a more stable estimate on small data; use **time-series CV** (expanding
+window) for temporal data. Keep a final **test set untouched** until the end — every decision made using
+it (tuning, feature selection) leaks optimism into the reported score.
+
 ## ⚖️ Which metric for which business goal
 
 | Business statement | Metric to optimise |
@@ -108,6 +153,39 @@ limited labelled data.
 | Validation loss starts rising mid-training | Early stopping (restore best checkpoint) |
 | Model too simple, both errors high | Increase capacity — it's underfitting |
 
+## 🧪 Worked scenarios
+
+### 1. 99.9 % accuracy
+A fraud model reports 99.9 % accuracy on data with 0.1 % fraud. Is it good?
+
+**Answer:** Unknown — predicting "never fraud" achieves the same. Report **recall, precision, PR AUC**
+and the confusion matrix.
+
+### 2. Validation loss rises after epoch 8
+Training loss keeps falling, validation loss starts rising at epoch 8.
+
+**Answer:** **Overfitting** — **early stopping** with best-checkpoint restore; then regularisation /
+augmentation / more data.
+
+### 3. New users get bad recommendations
+A matrix-factorization recommender works well for active users but poorly for new sign-ups.
+
+**Answer:** **Cold start** — fall back to popularity or content-based features, or use a hybrid /
+two-tower model with user features.
+
+### 4. Probabilities drive pricing
+Predicted default probabilities are multiplied by loan value to price risk; a model with high AUC
+gives systematically too-high probabilities.
+
+**Answer:** AUC measures ranking, not calibration. **Calibrate** (Platt / isotonic) and monitor **log
+loss**.
+
+### 5. "Catch 90 % of defects"
+Quality control wants to catch at least 90 % of defective parts.
+
+**Answer:** Choose the **threshold** that gives **recall ≥ 0.9** on validation data and report the
+resulting precision — no retraining needed.
+
 ## 🪤 Exam traps
 
 - **99 % accuracy on 1 % positive class** = useless model; look at recall/precision/PR AUC.
@@ -115,6 +193,8 @@ limited labelled data.
 - **Retraining to change precision/recall** — just move the threshold.
 - **Treating overfitting with a bigger model** (or underfitting with more regularisation).
 - **Evaluating forecasts with random splits.**
+- **AUC as proof of good probabilities** — ranking quality ≠ calibration.
+- **Tuning on the test set** — the final score becomes over-optimistic; use a validation set or CV.
 
 ## ✅ Key takeaways
 

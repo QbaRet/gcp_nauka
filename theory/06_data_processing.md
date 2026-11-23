@@ -56,6 +56,39 @@ Java in the app). Ways to do it once:
 | **Feature Store** | Features computed once, served to both training (point-in-time) and online inference |
 | **Same container/library** for batch & online paths | Shared code, e.g. a custom prediction routine with preprocessing |
 
+## Streaming concepts (Dataflow / Beam)
+
+| Concept | Meaning |
+|---|---|
+| **Event time vs processing time** | When the event happened vs when the pipeline sees it. Aggregate on **event time** for correct features |
+| **Fixed (tumbling) windows** | Non-overlapping, e.g. every 5 minutes |
+| **Sliding (hopping) windows** | Overlapping, e.g. "last 10 minutes, updated every minute" — typical for real-time features |
+| **Session windows** | Per-key activity separated by a gap of inactivity (user sessions) |
+| **Watermark** | Pipeline's estimate that all data up to time T has arrived |
+| **Triggers / allowed lateness** | When to emit results, and how late data still updates them |
+
+Typical real-time feature: Pub/Sub → Dataflow (sliding window per card/user) → Bigtable or Feature Store
+online store, and the same values written to BigQuery for training.
+
+## TensorFlow Transform in detail
+
+tf.Transform has two phases:
+
+1. **Analyze** — a full pass over the training data on Beam/Dataflow computes statistics: mean/std,
+   min/max, quantiles, **vocabularies**.
+2. **Transform** — applies those constants row by row. The result is a **transform graph** saved with the
+   model, so serving uses exactly the same constants.
+
+Common functions: `tft.scale_to_z_score`, `tft.scale_to_0_1`, `tft.compute_and_apply_vocabulary`,
+`tft.bucketize`, `tft.tfidf`. Use it when preprocessing needs **full-pass statistics** — something Keras
+layers inside a single training step can't compute without an `adapt()` pass.
+
+## Orchestrating SQL transformations
+
+For SQL-heavy pipelines in BigQuery: **scheduled queries** for simple recurring jobs, **Dataform** (SQL
+workflows with dependencies, tests/assertions and Git) for larger transformation graphs, and Composer or
+Vertex AI Pipelines when SQL steps are part of a bigger ML workflow.
+
 ## ⚖️ BigQuery vs Dataflow vs Dataproc vs Data Fusion
 
 | Scenario | Best fit |
@@ -78,6 +111,37 @@ Java in the app). Ways to do it once:
 | Avoid hot keys / fusion bottlenecks; use Combine instead of GroupByKey where possible | Better parallelism |
 | Templates | Reusable, parameterised, launchable from pipelines/Cloud Functions |
 
+## 🧪 Worked scenarios
+
+### 1. Real-time fraud feature
+The fraud model needs "number of transactions per card in the last 10 minutes" at prediction time.
+
+**Answer:** **Pub/Sub → Dataflow** with a **sliding window** keyed by card on event time, writing to a
+low-latency store (Bigtable / Feature Store online) — and to BigQuery for training.
+
+### 2. 200 PySpark jobs
+A company migrates from on-prem Hadoop and wants to move 200 PySpark jobs with minimal changes.
+
+**Answer:** **Dataproc** (or Serverless for Apache Spark). Rewriting in Beam for Dataflow contradicts
+"minimal changes".
+
+### 3. Vocabulary at serving time
+A TensorFlow text model needs the training vocabulary and z-score constants applied identically online.
+
+**Answer:** **TensorFlow Transform** — analyze phase on Dataflow, transform graph exported with the
+model.
+
+### 4. Nightly joins in BigQuery
+5 TB of order data in BigQuery must be joined and aggregated into a feature table every night.
+
+**Answer:** **BigQuery SQL** as a scheduled query (or Dataform for a larger dependency graph). No need
+for Dataflow or Spark.
+
+### 5. Analysts without code
+A data-integration team wants to build pipelines from SaaS sources and databases visually.
+
+**Answer:** **Cloud Data Fusion**.
+
 ## 🪤 Exam traps
 
 - **Rewriting Spark jobs in Beam** when the requirement is "migrate quickly with minimal code changes" →
@@ -88,6 +152,10 @@ Java in the app). Ways to do it once:
 - **Duplicated preprocessing in the serving app** → training-serving skew. Prefer TRANSFORM / tf.Transform /
   in-model layers / Feature Store.
 - **Cloud Functions for heavy data processing** — fine for small triggers/glue, not for large-scale ETL.
+- **Processing-time windows for behavioural features** — late events land in the wrong window; use
+  event time with watermarks.
+- **Computing vocabularies per batch** — full-pass statistics need tf.Transform (or BigQuery) over the
+  whole training set.
 
 ## ✅ Key takeaways
 

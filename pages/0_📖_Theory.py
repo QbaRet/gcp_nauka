@@ -30,7 +30,8 @@ set_css_style(Path("style.css"))
 ABOUT = """
 **How to use these lessons.** Read a lesson, then press **Practice** at the bottom to answer the questions
 from the bank linked to that topic. Each lesson has decision tables (⚖️, also collected on the *Cheat
-sheets* tab), the typical exam traps (🪤) and key takeaways (✅).
+sheets* tab), worked exam-style scenarios with hidden answers (🧪), the typical exam traps (🪤) and key
+takeaways (✅).
 
 **Naming.** The question bank uses the current product names; the lessons and exam guide 3.1 still use
 the older ones. Old → new:
@@ -122,6 +123,23 @@ def practice(target: str, lesson: Lesson):
 # --------------------------------------------------------------------------- rendering
 
 
+SCENARIO_MARK = "🧪"
+
+
+def render_scenarios(body: str):
+    """``### title`` blocks; text after ``**Answer:**`` is hidden in an expander."""
+    for block in re.split(r"^### +", body, flags=re.MULTILINE):
+        if not block.strip():
+            continue
+        title, _, text = block.partition("\n")
+        question, _, answer = text.partition("**Answer:**")
+        with st.container(border=True):
+            st.markdown(f"**{title.strip()}**\n\n{question.strip()}")
+            if answer.strip():
+                with st.expander("Show answer"):
+                    st.markdown(answer.strip())
+
+
 def render_body(lesson: Lesson):
     for heading, body in split_sections(lesson.body()):
         if not heading:
@@ -136,6 +154,10 @@ def render_body(lesson: Lesson):
         elif heading.startswith("🪤"):
             st.markdown(f"## {heading}")
             st.warning(body)
+        elif heading.startswith(SCENARIO_MARK):
+            st.markdown(f"## {heading}")
+            st.caption("Try to answer each scenario yourself before revealing the answer.")
+            render_scenarios(body)
         else:
             st.markdown(f"## {heading}\n\n{body}")
 

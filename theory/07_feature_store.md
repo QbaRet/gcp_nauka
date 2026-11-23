@@ -65,6 +65,43 @@ is deprecated (Feb 17, 2026; shutdown Feb 17, 2027). Older exam questions descri
 - **Point-in-time** training datasets without leakage.
 - **Feature monitoring** for drift.
 
+## Point-in-time join, by example
+
+Label table (what we want to predict) and a feature history:
+
+| user | label_time | churned |
+|---|---|---|
+| u1 | 2026-03-01 | 0 |
+| u1 | 2026-06-01 | 1 |
+
+| user | feature_time | spend_30d |
+|---|---|---|
+| u1 | 2026-02-20 | 120 |
+| u1 | 2026-05-25 | 15 |
+| u1 | 2026-06-10 | 0 |
+
+A **point-in-time** join gives the March row `spend_30d = 120` and the June row `15` — the latest value
+*at or before* the label time. A naive "latest value" join would give `0` to both rows (from June 10, after
+the label) → leakage. Feature Store training-data retrieval (and an `AS OF`-style SQL join) do this for
+you.
+
+## Advanced encodings
+
+- **Target (mean) encoding** — replace a category by the mean label for it. Powerful for high
+  cardinality but leaks unless computed **out-of-fold** or on a separate split, with smoothing for rare
+  categories.
+- **Embeddings** — learned dense vectors (inside a neural net) or pretrained ones (text/image embeddings
+  as features). Two-tower models learn user and item embeddings for retrieval.
+- **Normalising counts** — rates (clicks / impressions) instead of raw counts that grow with exposure.
+- **Out-of-vocabulary handling** — reserve OOV/hash buckets so new categories at serving don't crash or
+  collapse.
+
+## Avoiding skew in features: "log at serving time"
+
+One of Google's *Rules of ML*: **log the features exactly as they were served** and train on those logs.
+Then the training data is, by construction, what the model saw in production — no re-computation
+mismatch. Combine with a feature store for shared definitions.
+
 ## ⚖️ Where to compute features
 
 | Need | Where |
@@ -83,6 +120,33 @@ is deprecated (Feb 17, 2026; shutdown Feb 17, 2027). Older exam questions descri
 | Ordered categories (S/M/L) | Ordinal encoding |
 | Unknown values at serving | Out-of-vocabulary bucket |
 
+## 🧪 Worked scenarios
+
+### 1. Two definitions of the same feature
+Fraud and marketing teams both compute "customer 90-day spend", get different values and duplicate the
+pipelines.
+
+**Answer:** Define it once in a **Feature Store** feature group (backed by BigQuery) and serve it to both
+teams — reuse, consistency, discovery.
+
+### 2. Great offline, poor online
+A model built on "average product rating" scores 0.95 AUC offline and 0.70 in production. The rating was
+computed from *all* reviews, including future ones.
+
+**Answer:** **Leakage**. Rebuild the training set with **point-in-time** feature values and split by
+time.
+
+### 3. Millisecond features for a billion users
+An endpoint needs the latest user features at low latency for 1 B entities.
+
+**Answer:** Feature Store **Bigtable online serving**, synced from BigQuery (continuous sync if freshness
+matters).
+
+### 4. 40 000 zip codes in a linear model
+One-hot encoding the zip code makes the model huge and slow.
+
+**Answer:** **Hash buckets** or an **embedding**, optionally bucketised lat/long crosses for geography.
+
 ## 🪤 Exam traps
 
 - **Normalising with statistics from all data** (train + test) → leakage. Fit scalers on training data.
@@ -92,6 +156,8 @@ is deprecated (Feb 17, 2026; shutdown Feb 17, 2027). Older exam questions descri
 - **Scaling for tree models** is unnecessary — don't pick it as the "fix".
 - **Embeddings in Feature Store**: for new work, Google recommends Vector Search rather than the deprecated
   Optimized online serving.
+- **Target encoding computed on the full training set** — leaks the label; compute out-of-fold.
+- **Naive "latest value" joins** for training data — use point-in-time lookups.
 
 ## ✅ Key takeaways
 

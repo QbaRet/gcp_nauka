@@ -7,6 +7,7 @@ in ``data/theory_progress.json``.
 Markdown conventions inside a lesson:
 - ``## ⚖️ ...`` sections are decision guides / cheat sheets (also collected on the "Cheat sheets" tab)
 - ``## 🪤 ...`` sections list exam traps
+- ``## 🧪 ...`` sections hold worked scenarios (``### title``, question, then ``**Answer:**``)
 """
 
 import json

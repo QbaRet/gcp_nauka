@@ -5,7 +5,7 @@
       "id": "01_choosing_approach",
       "title": "Choosing the right ML approach",
       "domains": ["1. Architecting low-code AI solutions", "3. Scaling prototypes into ML models"],
-      "minutes": 12,
+      "minutes": 15,
       "summary": "Pre-trained APIs vs BigQuery ML vs AutoML vs custom training vs foundation models — the first decision in almost every exam scenario.",
       "match": {
         "products": ["automl", "model garden"],
@@ -22,7 +22,7 @@
       "id": "02_bigquery_ml",
       "title": "BigQuery ML",
       "domains": ["1. Architecting low-code AI solutions"],
-      "minutes": 14,
+      "minutes": 15,
       "summary": "Train, evaluate, explain and serve models with SQL where the data already lives; TRANSFORM, export, Model Registry and remote models.",
       "match": {
         "products": ["bigquery ml", "bigqueryml", "bqml"],
@@ -39,7 +39,7 @@
       "id": "03_ai_apis",
       "title": "Pre-trained AI APIs and industry solutions",
       "domains": ["1. Architecting low-code AI solutions"],
-      "minutes": 11,
+      "minutes": 13,
       "summary": "Vision, Natural Language, Translation, Speech, Document AI, recommendations and conversational agents — when an API beats training a model.",
       "match": {
         "products": ["vision api", "natural language", "translation", "speech", "document ai", "video intelligence", "recommendations ai", "dialogflow", "retail", "contact center"],
@@ -76,7 +76,7 @@
       "id": "05_data_storage",
       "title": "Storing and organizing data for ML",
       "domains": ["2. Collaborating to manage data and models", "3. Scaling prototypes into ML models"],
-      "minutes": 10,
+      "minutes": 12,
       "summary": "Cloud Storage vs BigQuery vs Bigtable vs Spanner vs Cloud SQL, file formats for training, managed datasets and data splits.",
       "match": {
         "products": ["cloud storage", "bigtable", "spanner", "cloud sql", "filestore", "managed datasets", "data catalog"],
@@ -126,7 +126,7 @@
       "id": "08_notebooks_experiments",
       "title": "Notebooks, experiments and lineage",
       "domains": ["2. Collaborating to manage data and models"],
-      "minutes": 10,
+      "minutes": 12,
       "summary": "Workbench vs Colab Enterprise vs Dataproc notebooks, Vertex AI Experiments, TensorBoard, ML Metadata and Model Registry versions.",
       "match": {
         "products": ["workbench", "notebook", "colab", "experiments", "tensorboard", "metadata", "deep learning vm", "model registry"],
@@ -144,7 +144,7 @@
       "id": "09_custom_training",
       "title": "Custom training and hyperparameter tuning",
       "domains": ["3. Scaling prototypes into ML models"],
-      "minutes": 13,
+      "minutes": 14,
       "summary": "Prebuilt vs custom containers, CustomJob vs training pipelines, worker pools, Spot VMs, troubleshooting and hyperparameter tuning.",
       "match": {
         "products": ["vertex ai training", "agent platform training", "custom training", "vizier", "hypertune"],
@@ -161,7 +161,7 @@
       "id": "10_hardware_distributed",
       "title": "Hardware and distributed training",
       "domains": ["3. Scaling prototypes into ML models"],
-      "minutes": 12,
+      "minutes": 13,
       "summary": "CPU vs GPU vs TPU, data vs model parallelism, tf.distribute strategies, Reduction Server and input-pipeline bottlenecks.",
       "match": {
         "products": ["tpu", "gpu", "reduction server", "compute engine"],
@@ -246,7 +246,7 @@
       "id": "15_responsible_secure_ai",
       "title": "Security, privacy and responsible AI",
       "domains": ["6. Monitoring AI solutions", "2. Collaborating to manage data and models"],
-      "minutes": 14,
+      "minutes": 16,
       "summary": "PII and Sensitive Data Protection, IAM/VPC-SC/CMEK, explainability methods, fairness and bias, gen AI safety and Model Armor.",
       "match": {
         "products": ["dlp", "data loss prevention", "sensitive data protection", "explainable", "ai explanations", "vpc service controls", "iam", "identity and access", "fairness", "what-if", "model armor"],

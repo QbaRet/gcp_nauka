@@ -89,6 +89,39 @@ small trees) are an alternative when regulations demand transparency.
 - Document with **model cards** (intended use, limitations, evaluation per slice).
 - Removing a sensitive attribute alone doesn't remove bias if proxies remain.
 
+## Fairness metrics
+
+| Metric | Requires equal across groups… | Use when |
+|---|---|---|
+| **Demographic parity** | Positive prediction rate | Outcomes (e.g. offers) should be distributed equally |
+| **Equal opportunity** | True positive rate (recall) | Qualified people must have the same chance of a positive decision |
+| **Equalized odds** | TPR **and** FPR | Both missed and false positives matter (e.g. justice, lending) |
+| **Predictive parity** | Precision | A positive prediction must mean the same thing for everyone |
+
+When base rates differ between groups these criteria **cannot all hold at once** — the choice is a
+business/ethical decision to document in the model card. Measure them per slice (Fairness Indicators /
+TFMA, What-If Tool, BigQuery queries on predictions).
+
+## Privacy-enhancing techniques
+
+- **Differential privacy** — adds calibrated noise so no individual's presence can be inferred. In
+  training: **DP-SGD** (TensorFlow Privacy, Opacus); in analytics: BigQuery
+  `SELECT WITH DIFFERENTIAL_PRIVACY` for aggregates. Trade-off: privacy budget (epsilon) vs accuracy.
+- **Federated learning** — train on devices; only model updates leave the device (keyboard prediction,
+  mobile personalisation).
+- **Data minimisation** — collect and keep only the features the model needs; set retention.
+- **Confidential computing** — encrypt data in use (Confidential VMs / Confidential GKE nodes, Workbench
+  Confidential Computing).
+
+## Responsible AI lifecycle
+
+1. **Define** intended use, users and harms; check against Google's AI Principles / your policy.
+2. **Data**: representativeness, consent, labelling quality, **data cards**.
+3. **Model**: evaluation per slice, explainability, red-teaming for gen AI.
+4. **Document**: **model cards** (intended use, limitations, metrics per slice, ethical considerations).
+5. **Deploy & monitor**: fairness and safety in production, user feedback, human oversight for
+   high-stakes decisions.
+
 ## ⚖️ Which explanation method?
 
 | Model | Method |
@@ -111,6 +144,40 @@ small trees) are an alternative when regulations demand transparency.
 | Stop data leaving the project even with leaked credentials | VPC Service Controls |
 | Organisation controls encryption keys | CMEK |
 
+## 🧪 Worked scenarios
+
+### 1. Loan model and zip code
+A loan model doesn't use ethnicity, but approval rates differ sharply by ethnic group; zip code is a top
+feature.
+
+**Answer:** Zip code is a **proxy**. Evaluate fairness metrics **per slice**, audit/remove or coarsen the
+proxy, re-weight data, consider per-group thresholds where legal, and document in the model card.
+
+### 2. Train on PII
+Data scientists need to train a churn model on customer records containing names, emails and birth
+dates, without seeing them.
+
+**Answer:** **Sensitive Data Protection de-identification** in the ingestion pipeline: drop names,
+**tokenize** customer IDs/emails (deterministic, key in Cloud KMS), **bucket** birth dates into age bands.
+
+### 3. Explaining a boosted-tree credit model
+Regulators require per-decision explanations for an XGBoost model.
+
+**Answer:** **Sampled Shapley** (or open-source **SHAP** TreeExplainer) — Integrated Gradients needs a
+differentiable model.
+
+### 4. Prompt injection in a support bot
+Users paste text instructing the bot to reveal internal discount codes from its context.
+
+**Answer:** **Model Armor** (prompt-injection/jailbreak and sensitive-data filters) on inputs and
+outputs, don't put secrets in the prompt, least-privilege tools, plus safety settings.
+
+### 5. Exfiltration with stolen credentials
+Security wants training data in BigQuery to be unusable outside the corporate perimeter even if a key
+leaks.
+
+**Answer:** **VPC Service Controls** perimeter (plus least-privilege IAM and no long-lived keys).
+
 ## 🪤 Exam traps
 
 - **Dropping the sensitive column** doesn't fix bias when proxies remain, and masking destroys features
@@ -120,6 +187,9 @@ small trees) are an alternative when regulations demand transparency.
 - **Primitive Editor role for a pipeline service account** — use least-privilege custom/predefined roles.
 - **Relying only on safety filters for prompt injection** — Model Armor / input screening and limited
   tool permissions.
+- **Expecting all fairness metrics to be satisfied at once** — with different base rates they conflict;
+  pick and justify one.
+- **Masking IDs needed for joins** — use deterministic tokenization instead.
 
 ## ✅ Key takeaways
 

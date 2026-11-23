@@ -73,6 +73,47 @@ Typical flow: commit → **Cloud Build** runs unit tests for components, builds 
 the pipeline/schedule to production. Environments: automated to test, semi-automated to pre-prod,
 manual approval to production.
 
+## Writing a pipeline with KFP v2
+
+```python
+from kfp import dsl, compiler
+
+@dsl.component(base_image="python:3.11", packages_to_install=["pandas", "scikit-learn"])
+def train(data: dsl.Input[dsl.Dataset], model: dsl.Output[dsl.Model],
+          metrics: dsl.Output[dsl.Metrics]) -> float:
+    ...                      # read data.path, write model.path
+    metrics.log_metric("auc", auc)
+    return auc
+
+@dsl.pipeline(name="churn-training")
+def pipeline(min_auc: float = 0.8):
+    data = extract().set_caching_options(False)      # non-deterministic → no cache
+    t = train(data=data.outputs["dataset"]).set_cpu_limit("8").set_memory_limit("32G")
+    with dsl.If(t.outputs["Output"] >= min_auc):      # gate
+        deploy(model=t.outputs["model"])
+
+compiler.Compiler().compile(pipeline, "pipeline.yaml")
+```
+
+- **Lightweight Python components** (decorated functions) for simple steps; **container components** for
+  any image/language; **Google Cloud Pipeline Components** for Vertex AI services.
+- Typed artifacts — `Dataset`, `Model`, `Metrics`, `ClassificationMetrics` — are tracked in ML Metadata.
+- Control flow: `dsl.If` / `dsl.Elif` / `dsl.Else`, `dsl.ParallelFor` (fan-out, e.g. one model per
+  region), `dsl.ExitHandler` (always run cleanup/notification).
+- Resources per step (`set_cpu_limit`, `set_memory_limit`, accelerators) — heavy training usually runs as
+  a **CustomJob component** instead of inside the step container.
+
+## A typical continuous-training pipeline
+
+1. **Extract** new data (BigQuery) — caching off.
+2. **Validate** data: schema and distribution checks; stop if anomalies.
+3. **Transform** / build features (Dataflow, BigQuery or tf.Transform).
+4. **Train** (custom job / AutoML / BQML), optionally with **hyperparameter tuning**.
+5. **Evaluate** on a holdout and **compare with the champion** model.
+6. If better: **register** the version in Model Registry (alias `challenger` → `champion`).
+7. **Deploy** with a canary traffic split; configure **monitoring**.
+8. **Notify** (ExitHandler) on success or failure.
+
 ## ⚖️ Kubeflow Pipelines vs TFX
 
 | | KFP SDK | TFX |
@@ -90,6 +131,38 @@ manual approval to production.
 | Infrastructure | Serverless | Managed Airflow environment |
 | Pick when | Training/eval/deploy workflows | Data engineering team already runs Airflow, many non-ML tasks |
 
+## 🧪 Worked scenarios
+
+### 1. Weekly retraining reuses old data
+A weekly scheduled pipeline finishes in seconds and the model never changes; the extract step's inputs
+are identical each week.
+
+**Answer:** **Execution caching** reuses the earlier extract result. Disable caching on the
+non-deterministic step (or pass the run date as a parameter).
+
+### 2. Deploy only if better
+Retrained models must never replace the production model unless they beat it on the latest holdout.
+
+**Answer:** An **evaluation component** comparing challenger vs champion, followed by a **`dsl.If`**
+gate before register/deploy (then canary).
+
+### 3. New files trigger training
+Partners drop new CSV files into a bucket at unpredictable times; training should start automatically.
+
+**Answer:** Cloud Storage event → **Cloud Run function** (or Eventarc) → submit the compiled
+`PipelineJob`.
+
+### 4. The data team already runs Airflow
+Hundreds of ETL DAGs run in Composer; ML training must start after the ETL finishes.
+
+**Answer:** Keep orchestration in **Composer** for ETL and have it **trigger a Vertex AI pipeline** for
+the ML part (lineage, ML artifacts).
+
+### 5. "Minimal ops" Kubeflow
+A team wants Kubeflow Pipelines without managing Kubernetes.
+
+**Answer:** **Vertex AI Pipelines** (serverless KFP) instead of Kubeflow on GKE.
+
 ## 🪤 Exam traps
 
 - **Cron on a VM / manual notebook runs** for retraining — use Scheduler API or event triggers.
@@ -98,6 +171,9 @@ manual approval to production.
 - **Self-managed Kubeflow on GKE** when the requirement is "minimal operational overhead" → Vertex AI
   Pipelines.
 - **Retraining on every drift alert without validation** can deploy worse models.
+- **Doing heavy training inside a lightweight component's container** instead of a CustomJob / GPU
+  resources.
+- **No notification on failure** — use an ExitHandler / Cloud Monitoring alerts on pipeline failures.
 
 ## ✅ Key takeaways
 

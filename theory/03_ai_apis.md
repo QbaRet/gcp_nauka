@@ -57,6 +57,29 @@ of user events drives results; never cache personalised results and show them to
 simple agents. **Agent Assist** gives real-time suggestions to human contact-centre agents. Modern
 gen-AI agents are built with Gemini and Vertex AI Agent Builder; older questions use Dialogflow.
 
+## Calling the APIs in practice
+
+| Concern | What to know |
+|---|---|
+| **Sync vs async** | Small inputs: synchronous request. Large inputs: **asynchronous / batch** operations that read from and write to Cloud Storage — e.g. Vision `asyncBatchAnnotateFiles` for PDF/TIFF, Speech-to-Text long-running/batch recognition for long audio, Document AI batch processing, Translation batch document translation |
+| **Authentication** | Service accounts from backends; never ship API keys or service-account keys inside mobile/web clients — call the API from your backend |
+| **Data residency** | Many APIs offer regional endpoints (e.g. `eu-`) and Document AI processors are created in a location — pick the one compliance requires |
+| **Quotas & cost** | Billed per unit (per image *per feature*, per 1 000 characters, per page, per minute of audio). Request only the features you need |
+| **Confidence** | Every response carries scores; route low-confidence results to human review instead of trusting them blindly |
+
+## Combining APIs into pipelines
+
+Real solutions chain APIs, usually orchestrated by Cloud Run functions, Workflows or Dataflow:
+
+- **Call analytics**: Speech-to-Text → Natural Language (sentiment, entities) → BigQuery. Contact-centre
+  packaged version: Conversational Insights (Contact Center AI Insights).
+- **Document intake**: Cloud Storage upload → Document AI classifier/splitter → specialised extractor →
+  validation → BigQuery / downstream system.
+- **Content moderation**: upload → Vision SafeSearch (images) / Video Intelligence explicit content
+  (video) → block or send to review.
+- **Multilingual analysis**: Translation → Natural Language, or let Gemini handle multilingual input
+  directly.
+
 ## ⚖️ API vs custom model
 
 | Requirement | Pick |
@@ -80,6 +103,39 @@ gen-AI agents are built with Gemini and Vertex AI Agent Builder; older questions
 | Best for | Text in images | High-volume document processing with a fixed schema | Ad-hoc questions, summarisation, flexible extraction |
 | Custom schema | No | Yes (custom extractor, up-training) | Via prompt / tuning |
 
+## 🧪 Worked scenarios
+
+### 1. User-uploaded images
+A social app must block adult or violent images at upload time, starting next week.
+
+**Answer:** Vision API **SafeSearch detection** called from the upload backend; reject or queue for review
+based on likelihood levels. No training needed.
+
+### 2. Sentiment of support calls
+A company records 10 000 support calls a day and wants a dashboard of customer sentiment per product.
+
+**Answer:** **Speech-to-Text** (batch, with model adaptation for product names) → **Natural Language
+API** sentiment/entity sentiment → BigQuery → dashboard. (Or Conversational Insights as a packaged
+contact-centre solution.)
+
+### 3. Mixed mortgage packet
+Applicants upload one 80-page PDF containing pay slips, IDs and bank statements; the bank needs fields
+from each document type.
+
+**Answer:** **Document AI custom splitter/classifier** to split and label the documents, then the
+matching **specialised processors** (or custom extractors) per type. Vision OCR alone gives only text.
+
+### 4. Product catalogue in 12 languages
+Brand and product names must never be translated.
+
+**Answer:** **Translation API Advanced** with a **glossary** (batch translation for the catalogue).
+
+### 5. Our own damage categories
+An insurer wants to classify car photos into its 15 internal damage categories.
+
+**Answer:** Not Vision label detection — use **AutoML image classification** (or a custom / tuned
+multimodal model). Business-specific labels need training on your data.
+
 ## 🪤 Exam traps
 
 - **Training a model for a generic task.** If the Vision API already detects the thing (text, landmarks,
@@ -90,6 +146,9 @@ gen-AI agents are built with Gemini and Vertex AI Agent Builder; older questions
 - **Plain OCR for forms.** Use Document AI when the requirement is fields/tables, not text.
 - **Retired AutoML products** (Natural Language, Video) may appear in older questions — pick them only if
   that's what the question offers; today's equivalent is Gemini.
+- **Synchronous calls for large files** — multi-page PDFs and long audio need async/batch operations
+  via Cloud Storage.
+- **API keys in a mobile app** — call the API from a backend with a service account.
 
 ## ✅ Key takeaways
 

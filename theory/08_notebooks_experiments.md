@@ -35,6 +35,37 @@ big data.
 - Keep code in **Git** (Workbench GitHub integration) — notebooks are not a version-control system.
 - Turn on idle shutdown; schedule long jobs as executions or training jobs rather than leaving VMs on.
 
+## Reproducibility checklist
+
+To reproduce a model months later you need to pin **all** of:
+
+| What | How |
+|---|---|
+| Code | Git commit hash, logged as a parameter of the experiment run |
+| Environment | Container image **digest** in Artifact Registry; pinned package versions |
+| Data | Table snapshot / partition date / time travel, or versioned files in Cloud Storage; managed dataset version |
+| Randomness | Fixed seeds (and note that GPU ops can still be non-deterministic) |
+| Hyperparameters & metrics | Vertex AI Experiments run |
+| Provenance | Vertex AI Pipelines → ML Metadata lineage automatically |
+
+## From notebook to production
+
+1. Explore and prototype in Workbench / Colab Enterprise.
+2. Move logic into **Python modules with tests**; keep the notebook as a thin driver.
+3. Package as a **container** (or prebuilt container + source distribution).
+4. Run as a **training job**, then compose jobs into a **Vertex AI pipeline**.
+5. Trigger the pipeline on schedule/events; deploy through CI/CD.
+
+Scheduled notebook executions are fine for reports and lightweight recurring jobs, but production
+training belongs in pipelines (testable, versioned, with lineage).
+
+## Comparing and evaluating models
+
+- **Model evaluation** in Vertex AI attaches evaluation metrics to model versions in the Registry, so you
+  can compare versions (and AutoML vs custom) in one place.
+- Pipelines can log metrics artifacts (`Metrics`, `ClassificationMetrics`) that the console renders
+  (confusion matrix, ROC curve) and that show up in Experiments.
+
 ## ⚖️ Workbench vs Colab Enterprise vs Dataproc notebooks
 
 | | Workbench instance | Colab Enterprise | Dataproc notebooks |
@@ -81,6 +112,34 @@ Central place for models (custom, AutoML, BigQuery ML — BQML models can be reg
 | "Keep versions of a model, promote one to production" | Model Registry (versions + aliases) |
 | "Share a notebook securely with a colleague" | Colab Enterprise (IAM) / Git for code |
 
+## 🧪 Worked scenarios
+
+### 1. GPU notebook left on
+Data scientists leave A100 Workbench instances running over weekends.
+
+**Answer:** Enable **idle shutdown**, move long runs to **scheduled executions / training jobs**, or use
+**Colab Enterprise** runtimes that are provisioned on demand.
+
+### 2. Audit question
+An auditor asks which dataset and code version produced the model currently in production.
+
+**Answer:** **Vertex ML Metadata lineage** (recorded automatically by Vertex AI Pipelines) plus the
+Model Registry version; log the Git commit in the run.
+
+### 3. 300 tuning runs
+A team runs hundreds of experiments with different hyperparameters and needs to compare AUC and loss
+curves.
+
+**Answer:** **Vertex AI Experiments** (params + summary metrics) with **Vertex AI TensorBoard** for
+time-series metrics.
+
+### 4. Notebook with sensitive data
+Notebooks query patient data in BigQuery; security requires that data can't be copied out of the
+project.
+
+**Answer:** **VPC Service Controls** perimeter around BigQuery, Cloud Storage and Vertex AI; Workbench
+with private IP, a least-privilege service account and CMEK if required.
+
 ## 🪤 Exam traps
 
 - **Choosing managed or user-managed notebooks** — retired; Workbench instances or Colab Enterprise.
@@ -89,6 +148,8 @@ Central place for models (custom, AutoML, BigQuery ML — BQML models can be reg
   Experiments is about comparing runs.
 - **Leaving GPU notebooks running** — idle shutdown, schedule executions, or submit training jobs.
 - **Exfiltration risk from notebooks** — VPC Service Controls + private networking.
+- **Production jobs running under a personal user account** — use a dedicated service account.
+- **"Reproducible" without data versioning** — logging code and params isn't enough if the table changed.
 
 ## ✅ Key takeaways
 

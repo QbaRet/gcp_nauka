@@ -47,6 +47,36 @@ Shard files (e.g. 100–200 MB each, many files) so many workers can read in par
 - **Stratified split** — keep class ratios for rare classes.
 - AutoML tabular supports random, manual (your split column) and chronological splits.
 
+## Making BigQuery training data fast and cheap
+
+- **Partition** tables by date and **cluster** by frequently filtered columns — training queries over
+  "the last 12 months" scan only those partitions.
+- Select only the columns you need (`SELECT *` scans and bills every column).
+- **Materialise** expensive feature queries into tables instead of recomputing per run.
+- Read with the **BigQuery Storage Read API** (parallel streams) from training code.
+- **External / BigLake tables** query Parquet/ORC files in Cloud Storage without loading them;
+  **object tables** expose unstructured files (images, PDFs) in Cloud Storage to SQL for AI functions.
+- **Time travel** (up to 7 days) and **table snapshots** let you reproduce the exact training data
+  later.
+
+## Data governance and access control
+
+| Need | Tool |
+|---|---|
+| Hide sensitive columns from some users | BigQuery **column-level security** with policy tags |
+| Show each team only its rows | **Row-level security** (row access policies) |
+| Share a filtered/aggregated result without the base table | **Authorized views** |
+| Catalogue, discover and track lineage of data assets | **Dataplex** (Universal Catalog), data lineage |
+| Automated data-quality checks (nulls, ranges, uniqueness) | Dataplex **data quality scans** |
+| Keep data in a region | Dataset/bucket location + Organisation Policy resource-location constraint |
+
+## Data quality before training
+
+Profile the data before building anything: missing values, duplicates, outliers, label distribution,
+inconsistent units/categories. Validate the **schema and distributions** automatically in pipelines
+(TFDV, Dataplex data quality) so a broken upstream feed fails the pipeline instead of producing a bad
+model.
+
 ## ⚖️ BigQuery vs Cloud Storage vs Bigtable
 
 | Question asks for… | Choose |
@@ -68,6 +98,37 @@ Shard files (e.g. 100–200 MB each, many files) so many workers can read in par
 
 Lifecycle rules move old raw data to colder classes automatically.
 
+## 🧪 Worked scenarios
+
+### 1. Slow image training
+A TensorFlow job reads 3 M JPEG files one by one from Cloud Storage; GPUs sit idle half the time.
+
+**Answer:** Convert to **sharded TFRecords** (~100–200 MB each) in the same region and read them with
+`tf.data` (`interleave`, `prefetch`).
+
+### 2. Features for 10 000 requests per second
+An online model needs each user's latest profile features in a few milliseconds.
+
+**Answer:** **Bigtable** (or Feature Store online serving on Bigtable). BigQuery is for analytics, not
+millisecond point lookups.
+
+### 3. Data scientists must not see PII
+The training table contains emails and phone numbers; data scientists need the other columns.
+
+**Answer:** **Policy tags / column-level security** in BigQuery (or an authorized view without those
+columns); de-identify with Sensitive Data Protection if the model needs a surrogate.
+
+### 4. Training query costs too much
+Each retraining run scans a 60 TB event table to build the last 90 days of features.
+
+**Answer:** **Partition** by event date (and cluster by user ID), select only needed columns, and
+materialise intermediate feature tables.
+
+### 5. Raw logs kept for compliance
+Raw logs must be kept 5 years but are read maybe once a year.
+
+**Answer:** Cloud Storage **Archive** class via a **lifecycle rule** after the active period.
+
 ## 🪤 Exam traps
 
 - **Bigtable for analytics** or **BigQuery for millisecond serving lookups** — both wrong way round.
@@ -77,6 +138,9 @@ Lifecycle rules move old raw data to colder classes automatically.
 - **Copying BigQuery data to CSV** just to train when you can read BigQuery directly or use BigQuery ML.
 - **Region mismatch** — keep data, training and endpoints in the same region (batch prediction even
   requires input/output and model to be co-located).
+- **`SELECT *` in training queries** — scans (and bills) every column.
+- **Nearline/Coldline for data read every training run** — retrieval fees and minimum storage durations
+  make it more expensive than Standard.
 
 ## ✅ Key takeaways
 

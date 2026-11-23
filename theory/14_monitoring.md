@@ -61,6 +61,38 @@ Feature monitors on feature groups compute statistics and drift anomalies for fe
 - Track **safety** (filter/blocked rates), **groundedness**/hallucinations, latency, token usage/cost,
   user feedback.
 
+## How the distances behave
+
+- **L-infinity distance** (categorical): the largest absolute change in any category's share. Baseline
+  `{web: 0.40, app: 0.60}`, production `{web: 0.75, app: 0.25}` → distance **0.35** → above the default
+  0.3 threshold → alert.
+- **Jensen-Shannon divergence** (numerical): symmetric measure between two distributions, 0 = identical,
+  1 = completely different (log base 2). Values are binned first.
+- Small, important features may need **lower thresholds**; noisy ones higher, to avoid alert fatigue.
+
+## Ground truth arrives late
+
+Concept drift and real accuracy need labels, which may arrive days or months later (loan default,
+churn):
+
+1. Log every prediction with an ID and the features (endpoint **request-response logging** to BigQuery).
+2. When labels arrive, **join** them to predictions and compute metrics per time window and per slice.
+3. Alert on metric drops (Cloud Monitoring on a scheduled query, or a pipeline step).
+4. Until labels arrive, use **input and prediction drift** as early-warning proxies.
+
+## Operational (service) monitoring
+
+Besides model quality, monitor the service like any production API: **latency (p50/p95/p99)**, **error
+rate** (4xx/5xx), **throughput**, **replica count**, CPU/GPU utilisation and memory. Define SLOs and alert
+through Cloud Monitoring. A spike in latency with stable traffic often means a resource or dependency
+problem — not drift.
+
+## Slices and feedback loops
+
+- Aggregate metrics can hide problems in one **slice** (country, device, new users) — monitor key slices.
+- **Feedback loops**: a recommender trained on its own recommendations narrows what users see; keep some
+  exploration traffic and log impressions to avoid biased training data.
+
 ## ⚖️ Skew vs drift vs concept drift
 
 | Question says… | It's… | Detect with |
@@ -78,6 +110,38 @@ Feature monitors on feature groups compute statistics and drift anomalies for fe
 | Frequency | Slower detection, cheaper | Faster detection (≥ 1 h), more cost |
 | Threshold | Fewer alerts, may miss issues | Sensitive, alert fatigue |
 
+## 🧪 Worked scenarios
+
+### 1. Accuracy dropped, inputs unchanged
+A fraud model's precision fell from 0.8 to 0.5 over two months; input distributions look stable.
+
+**Answer:** **Concept drift** (fraud patterns changed). Retrain on recent labelled data with evaluation
+gates; drift detection on inputs can't see it.
+
+### 2. Skew right after launch
+A day after deployment, skew alerts fire on "income": production values are 1 000× training values.
+
+**Answer:** A **preprocessing bug / unit mismatch** (e.g. thousands vs units) — fix the serving pipeline,
+don't retrain.
+
+### 3. No access to the training data
+A vendor-provided model is deployed; its training data isn't available, but you must watch for changes.
+
+**Answer:** **Drift detection** (baseline = earlier production data), or Model Monitoring v2 without a
+training baseline. Skew detection needs training data.
+
+### 4. Detect faster, but cost matters
+Alerts currently come daily; the business wants detection within hours without doubling cost.
+
+**Answer:** Increase **monitoring frequency** (e.g. every 1–6 h) and lower the **sampling rate** to
+offset cost, focusing on the most important features.
+
+### 5. Automate the reaction
+On a drift alert, retraining should start automatically but bad models must not reach production.
+
+**Answer:** Alert → **Pub/Sub** → Cloud Run function → **retraining pipeline** with data validation,
+champion/challenger evaluation and a canary rollout.
+
 ## 🪤 Exam traps
 
 - **Skew detection without training data** — not possible; use drift detection instead.
@@ -85,6 +149,8 @@ Feature monitors on feature groups compute statistics and drift anomalies for fe
 - **Automatically retraining on skew caused by a bug** — fix the serving pipeline first.
 - **Accuracy alone in production** — labels arrive late; use drift as an early proxy.
 - **One endpoint, many models, different monitoring needs** — v1 settings are per endpoint.
+- **Monitoring only the aggregate metric** — problems often hide in slices.
+- **Treating latency spikes as model drift** — that's an operational issue (resources, dependencies).
 
 ## ✅ Key takeaways
 

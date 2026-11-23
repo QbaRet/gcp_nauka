@@ -74,6 +74,40 @@ Trade-offs to remember:
 - Vertex AI Vizier is the underlying black-box optimisation service, also usable directly for non-ML
   optimisation problems.
 
+## Environment variables Vertex AI gives your code
+
+| Variable | Meaning |
+|---|---|
+| `AIP_MODEL_DIR` | Where to save the trained model (Cloud Storage) so it can be uploaded to the Registry |
+| `AIP_CHECKPOINT_DIR` | Suggested location for checkpoints |
+| `AIP_TENSORBOARD_LOG_DIR` | Logs for Vertex AI TensorBoard |
+| `AIP_TRAINING_DATA_URI`, `AIP_VALIDATION_DATA_URI`, `AIP_TEST_DATA_URI`, `AIP_DATA_FORMAT` | Set when the job uses a **managed dataset** — the splits Vertex AI exported for you |
+| `CLUSTER_SPEC`, `TF_CONFIG` | Distributed-training topology |
+
+## Faster iteration and start-up
+
+- **Local testing**: `gcloud ai custom-jobs local-run` builds a container from your code and runs it
+  locally before you pay for cloud hardware.
+- **Persistent resources**: a long-lived training cluster you reserve, so many jobs start without
+  waiting for VM provisioning (and keep capacity for scarce accelerators).
+- **Reservations / DWS (Dynamic Workload Scheduler)**: obtain scarce GPUs/TPUs for a job when capacity is
+  tight.
+- Custom containers start faster than prebuilt ones that pip-install requirements on every run.
+
+## Transfer learning and fine-tuning strategy
+
+1. Start from a pre-trained model (TF Hub/Keras applications, Hugging Face, Model Garden).
+2. **Freeze** the base and train a new head — fast, works with little data.
+3. **Unfreeze** top layers and fine-tune with a **low learning rate** if you have more data.
+4. For very small data, use the model as a fixed **feature extractor** (embeddings) + a simple classifier.
+
+## Service accounts and permissions
+
+Training runs as the **Vertex AI custom code service agent** by default, or a **custom service account**
+you specify (recommended: least privilege). It needs e.g. `roles/storage.objectViewer` on the data bucket
+(objectAdmin/creator for outputs), and `roles/bigquery.dataViewer` + `roles/bigquery.jobUser` (plus
+read-session permissions for the Storage Read API) to read BigQuery.
+
 ## ⚖️ Prebuilt vs custom container
 
 | Situation | Choose |
@@ -92,6 +126,35 @@ Trade-offs to remember:
 | Parallel-friendly | Less | Yes | **Best** |
 | Parameter types | Any | Discrete only | Any |
 
+## 🧪 Worked scenarios
+
+### 1. C++ dependency
+Training code depends on a proprietary C++ library and a specific CUDA build.
+
+**Answer:** **Custom container** in Artifact Registry with the library and CUDA pinned.
+
+### 2. Cut cost of a 2-day job
+A 2-day GPU training job is too expensive; occasional restarts are acceptable.
+
+**Answer:** **Spot VMs** with regular **checkpoints** to Cloud Storage and resume-from-latest logic.
+
+### 3. Small tuning budget
+You can afford ~30 trials to tune learning rate, dropout and batch size.
+
+**Answer:** Default **Bayesian** search, **log scale** for learning rate, modest parallelism (e.g. 3–5)
+so later trials learn from earlier ones; enable early stopping.
+
+### 4. Many short jobs waiting for VMs
+A team submits dozens of 10-minute jobs a day; each waits several minutes for provisioning.
+
+**Answer:** A Vertex AI **persistent resource** (pre-provisioned cluster) to run jobs on.
+
+### 5. "Access Denied" on BigQuery
+A custom job fails reading a BigQuery table that the data scientist can query in the console.
+
+**Answer:** The job runs as a **service account**, not the user — grant it BigQuery Data Viewer + Job
+User (and read-session access) on the dataset/project.
+
 ## 🪤 Exam traps
 
 - **Spot VMs without checkpoints** — cheap until preemption wipes progress.
@@ -100,6 +163,9 @@ Trade-offs to remember:
 - **Building a custom container** when a prebuilt one covers the framework — extra maintenance.
 - **Reporting the wrong metric** (training loss instead of validation metric) to the tuner → overfitting.
 - **Model not in the Registry** after a bare CustomJob — use a training pipeline or upload the model.
+- **Saving the model to a local path inside the container** — it disappears with the VM; write to
+  `AIP_MODEL_DIR` in Cloud Storage.
+- **Fine-tuning a whole pre-trained network with a high learning rate** — destroys pre-trained features.
 
 ## ✅ Key takeaways
 

@@ -96,6 +96,44 @@ Not exportable: ARIMA_PLUS, TimesFM, remote models, imported ONNX/TF Lite models
 if training used ARRAY, TIMESTAMP or GEOGRAPHY features. TRANSFORM models export with a `transform/`
 SavedModel for the preprocessing.
 
+## Remote models: Gemini and Google AI APIs from SQL
+
+BigQuery ML can call models it doesn't host through a **remote model**:
+
+```sql
+CREATE OR REPLACE MODEL `proj.ds.gemini`
+  REMOTE WITH CONNECTION `proj.eu.vertex_conn`
+  OPTIONS (endpoint = 'gemini-2.5-flash');
+
+SELECT * FROM ML.GENERATE_TEXT(MODEL `proj.ds.gemini`,
+  (SELECT CONCAT('Classify the sentiment of: ', review) AS prompt FROM `proj.ds.reviews`),
+  STRUCT(0.0 AS temperature, TRUE AS flatten_json_output));
+```
+
+- Requires a **Cloud resource connection**; its service account needs the Vertex AI User role.
+- Generative functions: `ML.GENERATE_TEXT`, the newer `AI.GENERATE` / `AI.GENERATE_TABLE` (structured
+  output), and `ML.GENERATE_EMBEDDING` / `AI.GENERATE_EMBEDDING` for embeddings.
+- Remote models over **Cloud AI APIs**: `ML.UNDERSTAND_TEXT` (Natural Language), `ML.TRANSLATE`,
+  `ML.ANNOTATE_IMAGE` (Vision, via object tables over Cloud Storage), `ML.PROCESS_DOCUMENT` (Document AI),
+  `ML.TRANSCRIBE` (Speech-to-Text).
+- **Semantic search in the warehouse**: store embeddings in a column, build a **vector index**
+  (`CREATE VECTOR INDEX`) and query with `VECTOR_SEARCH` — RAG without leaving BigQuery.
+
+This is the exam's answer to "run gen AI / AI APIs over millions of rows that are already in BigQuery,
+without building a pipeline".
+
+## Operating BQML models
+
+- **Retraining**: a scheduled query running `CREATE OR REPLACE MODEL`, or a Vertex AI pipeline using the
+  BigQuery ML components (create model → evaluate → compare → register/deploy).
+- **Threshold**: `ML.PREDICT(MODEL m, TABLE t, STRUCT(0.7 AS threshold))` changes the decision threshold of
+  a binary classifier (default 0.5) without retraining; choose it from `ML.ROC_CURVE`.
+- **Monitoring**: `ML.VALIDATE_DATA_SKEW` (vs training statistics) and `ML.VALIDATE_DATA_DRIFT` (vs an
+  earlier serving window); `ML.TFDV_DESCRIBE` for statistics.
+- **Evaluate clustering** with the Davies-Bouldin index from `ML.EVALUATE` (lower is better) to choose `k`.
+- **Cost**: training and prediction scan data like any query — select only needed columns and use
+  partitioned/clustered tables.
+
 ## ⚖️ BigQuery ML vs AutoML vs custom training
 
 | | BigQuery ML | Vertex AI AutoML | Custom training |
@@ -105,6 +143,41 @@ SavedModel for the preprocessing.
 | Data movement | None | Imported into a managed dataset | Read by your code |
 | Model choice | You pick a type | Searched for you | Unlimited |
 | Best for | Tabular, time series, quick baselines, in-warehouse scoring | Strong tabular/image models with no ML code | Special architectures, unstructured data at scale |
+
+## 🧪 Worked scenarios
+
+### 1. Segments without labels
+Marketing wants to group 20 M customers by behaviour; there is no label column and data is in BigQuery.
+How do you build and pick the number of segments?
+
+**Answer:** `KMEANS` in BigQuery ML; train with a few values of `num_clusters` and compare the
+**Davies-Bouldin index** from `ML.EVALUATE` (or tune `num_clusters` with `NUM_TRIALS`). Assign customers
+with `ML.PREDICT`.
+
+### 2. 5 000 store-product series
+Forecast daily demand for every store × product pair, accounting for holidays.
+
+**Answer:** One `ARIMA_PLUS` model with `TIME_SERIES_ID_COL = ['store','product']` and
+`HOLIDAY_REGION`; read forecasts with `ML.FORECAST`. If there are useful external signals (price,
+promotions) use `ARIMA_PLUS_XREG`; for zero-training forecasts `AI.FORECAST` (TimesFM).
+
+### 3. Mobile app needs < 100 ms predictions
+A BQML boosted-tree model must answer requests from a mobile backend in real time.
+
+**Answer:** Register it in **Vertex AI Model Registry** (`model_registry = 'vertex_ai'`) and **deploy to
+an endpoint**. `ML.PREDICT` is a query, not a low-latency serving path.
+
+### 4. Sentiment of 3 M reviews in BigQuery
+Analysts want sentiment per review without exporting data or writing Python.
+
+**Answer:** A **remote model** — `ML.UNDERSTAND_TEXT` over the Natural Language API, or Gemini via
+`ML.GENERATE_TEXT` / `AI.GENERATE` with a prompt — run directly on the table.
+
+### 5. Precision too low
+A churn classifier flags too many loyal customers. The business wants fewer false alarms.
+
+**Answer:** Raise the decision threshold in `ML.PREDICT` (`STRUCT(0.7 AS threshold)`) chosen from
+`ML.ROC_CURVE` — no retraining needed.
 
 ## 🪤 Exam traps
 
@@ -118,6 +191,9 @@ SavedModel for the preprocessing.
   explicit ratings).
 - **Forecasting many series** (per store, per product): a single ARIMA_PLUS model with
   `TIME_SERIES_ID_COL` trains them all.
+- **Remote model fails with a permission error** — the *connection's* service account needs access to
+  Vertex AI (and to Cloud Storage for object tables), not just your user.
+- **Retraining by hand** — schedule `CREATE OR REPLACE MODEL` or orchestrate with Vertex AI Pipelines.
 
 ## ✅ Key takeaways
 

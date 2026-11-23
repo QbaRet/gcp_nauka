@@ -223,10 +223,6 @@ notebooks/
 .venv_torch/
 .vscode/
 
-# Personal study state
-data/progress.json
-data/study.json
-data/notes.json
-data/exam_history.json
-data/theory_progress.json
+# Personal study state (progress.json, study.json, notes.json, exam_history.json,
+# theory_progress.json) is committed on purpose so it syncs between computers.
 data/*.tmp

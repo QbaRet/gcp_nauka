@@ -66,6 +66,42 @@ not for single-machine or TPU training.
 - Use **sharded TFRecords** instead of millions of small files; read from the same region.
 - Profile with TensorBoard's profiler — "device idle waiting for input" points to the pipeline.
 
+## Memory math: will it fit?
+
+Rough training memory per parameter with Adam in mixed precision ≈ **16 bytes** (weights, gradients and
+two optimizer moments, plus fp32 master copies), *before* activations:
+
+| Model size | ≈ Training state | Fits on one 80 GB GPU? |
+|---|---|---|
+| 350 M params | ~6 GB | Yes |
+| 3 B params | ~48 GB | Yes, tight with activations |
+| 7 B params | ~112 GB | **No** → shard (FSDP/ZeRO), or **PEFT/LoRA** |
+| 70 B params | ~1.1 TB | Many GPUs/TPU slice with model/tensor parallelism |
+
+Inference needs far less: ~2 bytes/param in bf16, ~1 byte in int8, ~0.5 in int4 (**quantisation**), plus
+the KV cache for LLMs.
+
+Memory savers in order of effort: smaller batch + **gradient accumulation** (same effective batch),
+**mixed precision**, **gradient (activation) checkpointing**, parameter-efficient fine-tuning,
+**sharding** (FSDP/ZeRO), then pipeline/tensor parallelism.
+
+## Scaling the batch
+
+Data parallelism multiplies the global batch (per-device batch × devices). Rules of thumb:
+
+- **Linear scaling rule**: multiply the learning rate by the same factor as the batch.
+- **Warm-up**: ramp the learning rate over the first steps to keep large-batch training stable.
+- Beyond some batch size returns diminish and generalisation may suffer (LARS/LAMB optimisers help).
+
+## Hardware for inference
+
+| Model | Usually serve on |
+|---|---|
+| Trees, linear, small sklearn models | CPU |
+| CNNs, BERT-size transformers, moderate QPS | GPU (T4/L4) — or CPU if latency budget allows |
+| LLMs | GPUs (L4/A100/H100) with vLLM, or TPUs with Hex-LLM / JetStream; quantised where possible |
+| On-device | TF Lite / quantised models on mobile/Edge TPU |
+
 ## ⚖️ Symptom → fix
 
 | Symptom | First thing to try |
@@ -87,6 +123,37 @@ not for single-machine or TPU training.
 | Sweet spot | General DL, small–large models, inference | Large models, big batches, long runs, matrix-heavy |
 | Precision | FP16/BF16/FP8 | **bfloat16** |
 
+## 🧪 Worked scenarios
+
+### 1. Low GPU utilisation
+A ResNet trains on one VM with 8 GPUs; GPU utilisation is 30 % and CPUs are at 100 %.
+
+**Answer:** **Input pipeline bottleneck** — `tf.data` parallel `map`, `prefetch`, `interleave` over
+**TFRecord** shards, cache, or more vCPUs. Adding GPUs won't help.
+
+### 2. Fine-tune a 70 B LLM
+A team wants to adapt a 70 B open model to its domain on a limited budget.
+
+**Answer:** **Parameter-efficient fine-tuning (LoRA/QLoRA)** on a multi-GPU node with sharding; full
+fine-tuning would need model parallelism across many accelerators. Or consider tuning a managed model.
+
+### 3. Scaling stalls at 16 nodes
+Multi-node synchronous GPU training barely speeds up from 8 to 16 nodes; profiling shows time spent in
+all-reduce.
+
+**Answer:** Add **Reduction Server** replicas (worker pool 2), and increase per-worker batch to
+improve compute/communication ratio.
+
+### 4. XGBoost on 5 GB
+Training an XGBoost model on 5 GB of tabular data.
+
+**Answer:** **CPU** machines (or a single GPU with `gpu_hist`) — TPUs bring nothing for tree models.
+
+### 5. Accuracy dropped after scaling out
+Moving from 1 to 8 GPUs with the same learning rate made convergence worse.
+
+**Answer:** The global batch grew 8× — **scale the learning rate** (linear scaling) with **warm-up**.
+
 ## 🪤 Exam traps
 
 - **Adding more GPUs when the input pipeline is the bottleneck** — utilisation stays low.
@@ -94,6 +161,8 @@ not for single-machine or TPU training.
 - **TPUs for models with custom CPU ops** or tiny models — little or no speed-up.
 - **Reduction Server for single-node or TPU training** — it's for multi-node GPU all-reduce.
 - **Increasing workers without adjusting batch size / learning rate** — convergence problems.
+- **Buying a bigger GPU before trying mixed precision / gradient accumulation** for OOM.
+- **Serving a small tree model on GPUs** — CPU is cheaper and just as fast.
 
 ## ✅ Key takeaways
 

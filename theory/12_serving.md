@@ -69,6 +69,40 @@ very small jobs are inefficient. Feature attributions can be requested in batch 
 - Traffic split is supported on dedicated public, shared public and PSC endpoints — not on VPC-peering
   private endpoints.
 
+## Latency budget: where the milliseconds go
+
+End-to-end latency = network + **feature lookup** + preprocessing + **model inference** + postprocessing.
+Fix the biggest slice first:
+
+| Slice | Levers |
+|---|---|
+| Network | Co-locate endpoint with callers (same region), private connectivity, gRPC, keep-alive |
+| Feature lookup | Precompute features; Bigtable / Feature Store online serving instead of BigQuery queries |
+| Preprocessing | Move it into the model graph (avoids extra hops), vectorise |
+| Inference | Smaller/distilled/quantised model, GPU for large deep models, optimised runtime (Optimized TF runtime, TensorRT, vLLM), batching |
+| Cold starts | Min replicas ≥ 1; pre-warm before known spikes |
+
+## Requests and payloads
+
+- Online requests send `instances` (JSON) — images as **base64**. For large inputs, send a **Cloud
+  Storage URI** and let the model read it, or use a dedicated endpoint (10 MB limit vs 1.5 MB shared).
+- Batch prediction reads files/tables directly — use it for large volumes.
+- Ask for **explanations** per request (`explain`) only when needed: they cost extra latency.
+
+## Serving open LLMs
+
+Deploy from Model Garden to a Vertex AI endpoint with an optimised server: **vLLM** (GPUs, continuous
+batching, paged attention), **Hex-LLM** (TPUs), or a custom container (e.g. Triton, TGI). Key levers:
+**quantisation** (int8/int4) to fit smaller/fewer GPUs, maximum context length (KV cache memory),
+autoscaling on GPU duty cycle, and **streaming** responses (needs a dedicated endpoint).
+
+## Autoscaling details
+
+- Autoscaling reacts to utilisation (CPU, GPU duty cycle; request-based metrics on newer options) with a
+  delay of minutes — for sudden, predictable spikes raise **min replicas** beforehand.
+- Standard endpoints keep at least one replica running; if near-zero traffic must cost ~nothing, consider
+  **Cloud Run** (scale to zero), co-hosting, or batch.
+
 ## ⚖️ Online vs batch — quick decisions
 
 | Scenario | Answer |
@@ -88,6 +122,39 @@ very small jobs are inefficient. Feature attributions can be requested in batch 
 | AutoML model or tuned Gemini | Shared public |
 | Need canary rollout | Any except VPC-peering private |
 
+## 🧪 Worked scenarios
+
+### 1. Score 100 M rows nightly
+Every night, churn scores must be computed for 100 M customers stored in BigQuery.
+
+**Answer:** **Batch prediction** with BigQuery input and output (or BigQuery ML `ML.PREDICT` if the model
+is a BQML model). No endpoint.
+
+### 2. Risky new model
+A retrained recommendation model looks better offline; the team fears a revenue drop.
+
+**Answer:** Deploy next to the current model on the same endpoint with a **10 % traffic split (canary)**,
+compare business metrics, then shift traffic gradually (or A/B test with significance).
+
+### 3. 50 tiny regional models
+Fifty small TensorFlow models, one per region, each receiving a few requests per minute.
+
+**Answer:** **Model co-hosting** with a deployment resource pool (or Cloud Run) — not 50 separately sized
+endpoints.
+
+### 4. 8 MB images, token streaming
+A multimodal app sends 8 MB images and needs streamed responses.
+
+**Answer:** A **dedicated endpoint** (public or PSC) — shared public endpoints are limited to 1.5 MB and
+don't stream. Alternatively upload images to Cloud Storage and pass URIs.
+
+### 5. Traffic must stay private, with canary rollouts
+A bank's internal apps call the model; nothing may traverse the public internet and they need traffic
+splitting and request logging.
+
+**Answer:** **Dedicated private endpoint via Private Service Connect** — VPC-peering private endpoints
+lack traffic split and logging.
+
 ## 🪤 Exam traps
 
 - **Deploying to an endpoint just to run batch scoring** — batch prediction doesn't need an endpoint.
@@ -97,6 +164,9 @@ very small jobs are inefficient. Feature attributions can be requested in batch 
   Feature Store.
 - **Expecting batch jobs to autoscale** — set replica counts.
 - **VPC-peering private endpoint + traffic split/logging** — not supported; use PSC.
+- **Querying BigQuery inside the online request path** for features — seconds of latency; use an online
+  store.
+- **Base64-encoding huge files into online requests** — use Cloud Storage URIs or batch prediction.
 
 ## ✅ Key takeaways
 

@@ -47,6 +47,38 @@ From least to most effort:
 | "Must run on device / offline" | Edge-exportable model (e.g. TF Lite) |
 | Strict interpretability requirements (regulated domain) | Simpler, interpretable models (linear, trees) + explanations |
 
+## Framing the problem before picking a product
+
+Before any product choice, the exam expects you to translate the business ask into an ML task — and to
+notice when ML isn't needed at all.
+
+| Business question | ML framing | Typical output |
+|---|---|---|
+| "Will this customer leave?" | Binary classification | Probability + threshold |
+| "How many units will we sell next week?" | Regression / time-series forecasting | Number (with interval) |
+| "Which 10 products should we show?" | Ranking / recommendation | Ordered list |
+| "Which customers are similar?" | Clustering / embeddings | Segment ID / vector |
+| "Is this transaction unusual?" | Anomaly detection (often unsupervised) | Score |
+| "Summarise / answer / draft this" | Generative AI | Text, JSON |
+
+**When not to use ML:** the logic is a stable, explainable rule ("flag orders > 10 000 EUR"), there is no
+data or no feedback signal, errors are unacceptable and must be deterministic, or a simple heuristic is
+already good enough. Google's *Rules of ML* start with "don't be afraid to launch a product without ML" —
+build a heuristic baseline first and measure ML against it.
+
+## Requirements checklist
+
+Read the scenario for each of these; one of them usually decides the answer:
+
+- **Success metric** — business KPI (revenue, churn) and the ML metric that proxies it (recall, RMSE).
+- **Data** — where it lives (BigQuery? GCS?), volume, labels available, how fresh it must be.
+- **Latency & throughput** — real-time request path vs nightly batch; QPS.
+- **Team skills** — SQL analysts, no ML team, or ML engineers.
+- **Time & budget** — "quickly", "prototype", "minimise cost".
+- **Compliance** — PII, data residency, explainability, auditability.
+- **Deployment target** — cloud endpoint, warehouse, mobile/edge, offline.
+- **Operations** — "minimal operational overhead" strongly favours managed services.
+
 ## ⚖️ Pre-trained API vs AutoML vs BigQuery ML vs custom training
 
 | | Pre-trained API | AutoML | BigQuery ML | Custom training |
@@ -70,6 +102,44 @@ From least to most effort:
 Google's documented order: *start with prompting to find the optimal prompt, then move on to tuning if
 required.* Tuning does **not** teach the model fresh facts reliably — that's what RAG is for.
 
+## 🧪 Worked scenarios
+
+### 1. Shelf photos
+A retailer wants to read price labels from photos of store shelves taken by employees. They have no ML
+team and want a solution this month. What do you use?
+
+**Answer:** Cloud Vision API **text detection** (OCR). The task is generic, no labels are needed and the
+team has no ML skills — training AutoML or a custom OCR model would be over-engineering.
+
+### 2. Loan default in the warehouse
+A bank's analysts know SQL; all loan history is in BigQuery. Regulators require an explanation for each
+decision. What's the best first approach?
+
+**Answer:** **BigQuery ML** — logistic regression or boosted trees — with `ML.EXPLAIN_PREDICT` for
+per-row attributions. No data movement, analysts own it, and explainability is built in.
+
+### 3. Defects specific to the factory
+A manufacturer has 8 000 labelled images of *its own* part defects (12 defect types) and two software
+engineers without ML experience. What fits?
+
+**Answer:** **AutoML image classification** (or object detection if defects must be located). Labels are
+business-specific, so the Vision API's generic labels won't work; custom training needs ML expertise the
+team lacks.
+
+### 4. Policy chatbot
+HR wants an assistant that answers employee questions from internal policy PDFs that change every week,
+with links to the source. What do you build?
+
+**Answer:** **Gemini with grounding / RAG** (e.g. Vertex AI Search or RAG Engine over the PDFs). Fresh,
+private knowledge with citations is exactly what RAG is for; fine-tuning would go stale every week and
+gives no citations.
+
+### 5. Research architecture
+A research team needs a graph neural network with a custom loss on 40 TB of data. What do you use?
+
+**Answer:** **Vertex AI custom training** (custom container if needed, distributed GPUs/TPUs). Nothing
+lower on the ladder supports a custom architecture and loss.
+
 ## 🪤 Exam traps
 
 - **Over-engineering.** A Kubeflow-on-GKE custom pipeline is rarely right when the question says "small
@@ -84,6 +154,10 @@ required.* Tuning does **not** teach the model fresh facts reliably — that's w
 - **Vertex AI is being renamed.** Current docs call the platform *Gemini Enterprise Agent Platform*;
   the exam guide 3.1 and this question bank say *Vertex AI*. Same services.
 - **Interpretability as a hard requirement** can rule out deep models even if they'd be more accurate.
+- **Using ML where a rule works.** If the requirement is a fixed, explainable business rule, a rule
+  engine/SQL is the right answer.
+- **Ignoring the hidden constraint.** "Must work offline on a phone" or "data cannot leave the EU" can
+  override every other consideration.
 
 ## ✅ Key takeaways
 

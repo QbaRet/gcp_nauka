@@ -81,6 +81,52 @@ evaluation to compare prompts, models and tuned versions *before* switching prod
   exponential backoff; use multiple regions for availability.
 - Stream responses to improve perceived latency.
 
+## Generation parameters and structured output
+
+| Parameter | Effect | Typical setting |
+|---|---|---|
+| **Temperature** | Randomness of token choice | ~0 for extraction/classification; higher for creative writing |
+| **Top-p / top-k** | Restrict sampling to the most likely tokens | Lower = more focused |
+| **Max output tokens** | Caps response length (and cost) | Set it for every production call |
+| **Stop sequences** | End generation at a marker | Templated outputs |
+| **Response schema** (controlled generation) | Forces valid JSON matching a schema / enum | Extraction, classification into fixed labels |
+| **System instructions** | Persistent role, rules and style | Persona, safety rules, output language |
+
+"The model sometimes returns invalid JSON" → use a **response schema** (and temperature 0) before
+considering tuning.
+
+## Embeddings
+
+Embedding models map text (or images/video with multimodal embeddings) to vectors so that similar
+meaning → nearby vectors. Uses: semantic search, RAG retrieval, clustering, deduplication,
+recommendations, features for classifiers.
+
+- Set the **task type** — e.g. `RETRIEVAL_DOCUMENT` when indexing, `RETRIEVAL_QUERY` for the query,
+  `SEMANTIC_SIMILARITY`, `CLASSIFICATION`, `CLUSTERING` — it improves quality.
+- You can reduce **output dimensionality** to save storage/latency at a small quality cost.
+- Use the **same embedding model** for documents and queries; changing it means re-embedding everything.
+
+## Improving RAG quality
+
+| Problem | Lever |
+|---|---|
+| Right document exists but isn't retrieved | Better chunking (size/overlap, by section), **hybrid search** (dense + keyword/sparse), query rewriting, more chunks (top-k) |
+| Retrieved chunks are noisy | **Re-ranking** (Vertex AI ranking API), metadata **filters** (product, date, language) |
+| Answer ignores the context / hallucinates | Instruct "answer only from context, else say you don't know", check **groundedness** |
+| Stale answers | Incremental re-indexing when documents change |
+
+Evaluate **retrieval** (recall@k, does the right chunk appear?) separately from **generation**
+(groundedness, answer quality) — otherwise you can't tell which half to fix.
+
+## Agents and function calling
+
+**Function calling**: you declare tools (name, description, JSON parameters); the model returns a
+*structured call* and **your code executes it** and returns the result to the model. This is how LLMs
+query databases, call APIs or take actions. **Agents** loop over reason → call tool → observe. On Google
+Cloud they are built with the **Agent Development Kit (ADK)** or frameworks such as LangChain/LangGraph,
+deployed to **Agent Engine**, and grounded with Search/RAG. Security rule: give tools least privilege and
+validate their inputs — the model's output is untrusted.
+
 ## ⚖️ Prompting vs RAG vs fine-tuning
 
 | | Prompting | RAG / grounding | Fine-tuning |
@@ -100,6 +146,39 @@ evaluation to compare prompts, models and tuned versions *before* switching prod
 | Scaling | Google-managed quotas / provisioned throughput | You size replicas and autoscaling |
 | Typical reason | Fast, high quality, low ops | Data control, custom fine-tuning, licence/cost at scale |
 
+## 🧪 Worked scenarios
+
+### 1. Extract fields from emails
+You need order number, date and amount as JSON from customer emails; the model sometimes adds prose or
+malformed JSON.
+
+**Answer:** Use a **response schema** (controlled generation) with temperature 0 and a few-shot prompt.
+Tune only if accuracy is still insufficient after prompting.
+
+### 2. Chatbot invents prices
+A shopping assistant quotes wrong prices that change daily.
+
+**Answer:** **Ground / RAG** on the live catalogue (or call a pricing API via **function calling**).
+Fine-tuning can't keep up with daily changes.
+
+### 3. Cost of 50 M classifications per day
+A Pro-class model classifies support tickets; the bill is too high and latency doesn't matter overnight.
+
+**Answer:** Evaluate a **smaller Flash-class model** on the task, shorten prompts, use **batch
+prediction** for the offline volume and **context caching** for a long shared system prompt.
+
+### 4. Brand voice
+Even with good few-shot examples, marketing copy doesn't match the company's tone, and you have 2 000
+approved examples.
+
+**Answer:** **Supervised fine-tuning** (parameter-efficient) on the approved examples; if you have
+"better vs worse" pairs, **preference tuning**. Evaluate against the base model with rubric metrics.
+
+### 5. Search 200 M product vectors with category filters
+Low-latency semantic search over product embeddings, filtered by category and price.
+
+**Answer:** **Vector Search** index with **restricts** (category) and numeric restricts (price).
+
 ## 🪤 Exam traps
 
 - **Fine-tuning to add facts.** Up-to-date or private knowledge → RAG/grounding, not tuning.
@@ -109,6 +188,10 @@ evaluation to compare prompts, models and tuned versions *before* switching prod
   ROUGE/BLEU need reference answers.
 - **Security of gen AI apps** (prompt injection, data leakage) is covered in the *Security, privacy and
   responsible AI* lesson — safety filters and Model Armor.
+- **Different embedding models for queries and documents** — vectors aren't comparable.
+- **Tuning to fix invalid JSON** — controlled generation (response schema) solves it more cheaply.
+- **Letting an agent's tools run with broad permissions** — least privilege; treat model output as
+  untrusted input.
 
 ## ✅ Key takeaways
 
