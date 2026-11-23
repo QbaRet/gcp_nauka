@@ -222,3 +222,11 @@ data/bak
 notebooks/
 .venv_torch/
 .vscode/
+
+# Personal study state
+data/progress.json
+data/study.json
+data/notes.json
+data/exam_history.json
+data/theory_progress.json
+data/*.tmp

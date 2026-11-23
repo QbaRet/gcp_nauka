@@ -1,0 +1,264 @@
+{
+  "verified": "2026-11-22",
+  "lessons": [
+    {
+      "id": "01_choosing_approach",
+      "title": "Choosing the right ML approach",
+      "domains": ["1. Architecting low-code AI solutions", "3. Scaling prototypes into ML models"],
+      "minutes": 12,
+      "summary": "Pre-trained APIs vs BigQuery ML vs AutoML vs custom training vs foundation models — the first decision in almost every exam scenario.",
+      "match": {
+        "products": ["automl", "model garden"],
+        "topics": ["problem framing", "ml solution architecture", "managed services", "model selection", "low-code", "no-code", "build vs buy"]
+      },
+      "sources": [
+        {"title": "PMLE certification page", "url": "https://cloud.google.com/learn/certification/machine-learning-engineer"},
+        {"title": "AutoML model types", "url": "https://docs.cloud.google.com/vertex-ai/docs/start/automl-model-types"},
+        {"title": "Vertex AI deprecations", "url": "https://docs.cloud.google.com/vertex-ai/docs/deprecations"},
+        {"title": "Best practices for ML on Google Cloud", "url": "https://docs.cloud.google.com/architecture/ml-on-gcp-best-practices"}
+      ]
+    },
+    {
+      "id": "02_bigquery_ml",
+      "title": "BigQuery ML",
+      "domains": ["1. Architecting low-code AI solutions"],
+      "minutes": 14,
+      "summary": "Train, evaluate, explain and serve models with SQL where the data already lives; TRANSFORM, export, Model Registry and remote models.",
+      "match": {
+        "products": ["bigquery ml", "bigqueryml", "bqml"],
+        "topics": ["bigquery ml", "bqml", "sql", "matrix factorization", "arima", "time series forecasting"]
+      },
+      "sources": [
+        {"title": "Introduction to BigQuery ML", "url": "https://docs.cloud.google.com/bigquery/docs/bqml-introduction"},
+        {"title": "End-to-end user journey for each model", "url": "https://docs.cloud.google.com/bigquery/docs/e2e-journey"},
+        {"title": "TRANSFORM clause", "url": "https://docs.cloud.google.com/bigquery/docs/bigqueryml-transform"},
+        {"title": "Exporting models", "url": "https://docs.cloud.google.com/bigquery/docs/exporting-models"}
+      ]
+    },
+    {
+      "id": "03_ai_apis",
+      "title": "Pre-trained AI APIs and industry solutions",
+      "domains": ["1. Architecting low-code AI solutions"],
+      "minutes": 11,
+      "summary": "Vision, Natural Language, Translation, Speech, Document AI, recommendations and conversational agents — when an API beats training a model.",
+      "match": {
+        "products": ["vision api", "natural language", "translation", "speech", "document ai", "video intelligence", "recommendations ai", "dialogflow", "retail", "contact center"],
+        "topics": ["ocr", "document processing", "entity extraction", "sentiment analysis", "translation", "speech recognition", "recommendation", "chatbot", "pre-trained", "pretrained"]
+      },
+      "sources": [
+        {"title": "Vision API features", "url": "https://docs.cloud.google.com/vision/docs/features-list"},
+        {"title": "Natural Language API basics", "url": "https://docs.cloud.google.com/natural-language/docs/basics"},
+        {"title": "Document AI overview", "url": "https://docs.cloud.google.com/document-ai/docs/overview"},
+        {"title": "Retail / commerce search & recommendations", "url": "https://docs.cloud.google.com/retail/docs/overview"},
+        {"title": "Dialogflow", "url": "https://docs.cloud.google.com/dialogflow/docs"}
+      ]
+    },
+    {
+      "id": "04_generative_ai",
+      "title": "Generative AI: Model Garden, RAG, tuning and evaluation",
+      "domains": ["1. Architecting low-code AI solutions", "2. Collaborating to manage data and models", "3. Scaling prototypes into ML models"],
+      "minutes": 16,
+      "summary": "Choosing foundation models, prompting vs RAG vs tuning, grounding, Vector Search, Gemini tuning methods and evaluating gen AI output.",
+      "match": {
+        "products": ["model garden", "gemini", "palm", "generative", "vector search", "matching engine", "agent builder", "vertex ai search"],
+        "topics": ["generative", "llm", "large language model", "prompt", "retrieval-augmented", "retrieval", "embedding", "fine-tuning", "foundation model", "vector", "semantic search"]
+      },
+      "sources": [
+        {"title": "Tune Gemini models", "url": "https://docs.cloud.google.com/vertex-ai/generative-ai/docs/models/tune-models"},
+        {"title": "RAG Engine overview", "url": "https://docs.cloud.google.com/vertex-ai/generative-ai/docs/rag-engine/rag-overview"},
+        {"title": "Vector Search overview", "url": "https://docs.cloud.google.com/vertex-ai/docs/vector-search/overview"},
+        {"title": "Grounding overview", "url": "https://docs.cloud.google.com/vertex-ai/generative-ai/docs/grounding/overview"},
+        {"title": "Gen AI evaluation service", "url": "https://docs.cloud.google.com/vertex-ai/generative-ai/docs/models/evaluation-overview"},
+        {"title": "Model Garden", "url": "https://docs.cloud.google.com/vertex-ai/generative-ai/docs/model-garden/explore-models"}
+      ]
+    },
+    {
+      "id": "05_data_storage",
+      "title": "Storing and organizing data for ML",
+      "domains": ["2. Collaborating to manage data and models", "3. Scaling prototypes into ML models"],
+      "minutes": 10,
+      "summary": "Cloud Storage vs BigQuery vs Bigtable vs Spanner vs Cloud SQL, file formats for training, managed datasets and data splits.",
+      "match": {
+        "products": ["cloud storage", "bigtable", "spanner", "cloud sql", "filestore", "managed datasets", "data catalog"],
+        "topics": ["data storage", "data ingestion", "tfrecord", "data management", "data splitting", "data collection", "data lake", "data warehouse"]
+      },
+      "sources": [
+        {"title": "Datasets overview", "url": "https://docs.cloud.google.com/vertex-ai/docs/datasets/overview"},
+        {"title": "Custom training overview (data sources)", "url": "https://docs.cloud.google.com/vertex-ai/docs/training/overview"},
+        {"title": "Best practices for tabular data", "url": "https://docs.cloud.google.com/vertex-ai/docs/tabular-data/bp-tabular"}
+      ]
+    },
+    {
+      "id": "06_data_processing",
+      "title": "Data processing and preprocessing at scale",
+      "domains": ["2. Collaborating to manage data and models", "5. Automating and orchestrating ML pipelines"],
+      "minutes": 13,
+      "summary": "BigQuery SQL vs Dataflow vs Dataproc/Spark vs pandas, streaming with Pub/Sub, TensorFlow Transform and consistent preprocessing.",
+      "match": {
+        "products": ["dataflow", "dataproc", "apache spark", "pub/sub", "data fusion", "dataprep", "tensorflow transform", "runinference", "composer", "apache airflow"],
+        "topics": ["data preprocessing", "data processing", "data pipeline", "data transformation", "etl", "streaming", "batch processing", "data cleaning", "preprocessing", "data preparation"]
+      },
+      "sources": [
+        {"title": "Dataflow overview", "url": "https://docs.cloud.google.com/dataflow/docs/overview"},
+        {"title": "Dataproc overview", "url": "https://docs.cloud.google.com/dataproc/docs/concepts/overview"},
+        {"title": "Cloud Data Fusion overview", "url": "https://docs.cloud.google.com/data-fusion/docs/concepts/overview"},
+        {"title": "Dataflow pipeline best practices", "url": "https://docs.cloud.google.com/dataflow/docs/guides/pipeline-best-practices"},
+        {"title": "Dataflow cost optimization", "url": "https://docs.cloud.google.com/dataflow/docs/optimize-costs"}
+      ]
+    },
+    {
+      "id": "07_feature_store",
+      "title": "Feature engineering and Vertex AI Feature Store",
+      "domains": ["2. Collaborating to manage data and models", "4. Serving and scaling models"],
+      "minutes": 12,
+      "summary": "Encoding, scaling, crosses and leakage-free features; Feature Store concepts, online serving and point-in-time training data.",
+      "match": {
+        "products": ["feature store"],
+        "topics": ["feature engineering", "feature store", "feature management", "feature selection", "one-hot", "categorical", "encoding", "normalization", "feature cross", "embedding", "missing values", "bucketing"]
+      },
+      "sources": [
+        {"title": "Feature Store overview", "url": "https://docs.cloud.google.com/vertex-ai/docs/featurestore/latest/overview"},
+        {"title": "Online serving types", "url": "https://docs.cloud.google.com/vertex-ai/docs/featurestore/latest/online-serving-types"},
+        {"title": "Vertex AI deprecations", "url": "https://docs.cloud.google.com/vertex-ai/docs/deprecations"}
+      ]
+    },
+    {
+      "id": "08_notebooks_experiments",
+      "title": "Notebooks, experiments and lineage",
+      "domains": ["2. Collaborating to manage data and models"],
+      "minutes": 10,
+      "summary": "Workbench vs Colab Enterprise vs Dataproc notebooks, Vertex AI Experiments, TensorBoard, ML Metadata and Model Registry versions.",
+      "match": {
+        "products": ["workbench", "notebook", "colab", "experiments", "tensorboard", "metadata", "deep learning vm", "model registry"],
+        "topics": ["experiment", "notebooks", "jupyter", "lineage", "metadata", "artifact tracking", "model versioning", "reproducibility", "collaboration", "version control"]
+      },
+      "sources": [
+        {"title": "Workbench introduction", "url": "https://docs.cloud.google.com/vertex-ai/docs/workbench/introduction"},
+        {"title": "Colab Enterprise introduction", "url": "https://docs.cloud.google.com/colab/docs/introduction"},
+        {"title": "Vertex AI Experiments", "url": "https://docs.cloud.google.com/vertex-ai/docs/experiments/intro-vertex-ai-experiments"},
+        {"title": "Vertex ML Metadata", "url": "https://docs.cloud.google.com/vertex-ai/docs/ml-metadata/introduction"},
+        {"title": "Model Registry", "url": "https://docs.cloud.google.com/vertex-ai/docs/model-registry/introduction"}
+      ]
+    },
+    {
+      "id": "09_custom_training",
+      "title": "Custom training and hyperparameter tuning",
+      "domains": ["3. Scaling prototypes into ML models"],
+      "minutes": 13,
+      "summary": "Prebuilt vs custom containers, CustomJob vs training pipelines, worker pools, Spot VMs, troubleshooting and hyperparameter tuning.",
+      "match": {
+        "products": ["vertex ai training", "agent platform training", "custom training", "vizier", "hypertune"],
+        "topics": ["custom training", "hyperparameter", "custom container", "training job", "training optimization", "checkpoint", "training pipelines", "containerization"]
+      },
+      "sources": [
+        {"title": "Custom training overview", "url": "https://docs.cloud.google.com/vertex-ai/docs/training/overview"},
+        {"title": "Hyperparameter tuning overview", "url": "https://docs.cloud.google.com/vertex-ai/docs/training/hyperparameter-tuning-overview"},
+        {"title": "Spot VMs for training", "url": "https://docs.cloud.google.com/vertex-ai/docs/training/use-spot-vms"},
+        {"title": "Training code requirements", "url": "https://docs.cloud.google.com/vertex-ai/docs/training/code-requirements"}
+      ]
+    },
+    {
+      "id": "10_hardware_distributed",
+      "title": "Hardware and distributed training",
+      "domains": ["3. Scaling prototypes into ML models"],
+      "minutes": 12,
+      "summary": "CPU vs GPU vs TPU, data vs model parallelism, tf.distribute strategies, Reduction Server and input-pipeline bottlenecks.",
+      "match": {
+        "products": ["tpu", "gpu", "reduction server", "compute engine"],
+        "topics": ["distributed training", "hardware acceleration", "gpu", "tpu", "parallelism", "multi-worker", "performance optimization", "training speed", "batch size", "resource management", "profil"]
+      },
+      "sources": [
+        {"title": "Distributed training", "url": "https://docs.cloud.google.com/vertex-ai/docs/training/distributed-training"},
+        {"title": "Introduction to Cloud TPU", "url": "https://docs.cloud.google.com/tpu/docs/intro-to-tpu"},
+        {"title": "Custom training overview (compute)", "url": "https://docs.cloud.google.com/vertex-ai/docs/training/overview"}
+      ]
+    },
+    {
+      "id": "11_ml_fundamentals",
+      "title": "ML fundamentals the exam keeps testing",
+      "domains": ["3. Scaling prototypes into ML models"],
+      "minutes": 15,
+      "summary": "Metrics and thresholds, class imbalance, overfitting, data leakage, splits, baselines and picking a model type for the problem.",
+      "match": {
+        "products": [],
+        "topics": ["metrics", "evaluation", "precision", "recall", "accuracy", "auc", "f1", "overfitting", "regularization", "imbalanced", "class imbalance", "data leakage", "classification", "regression", "clustering", "forecasting", "loss", "convergence", "baseline", "model performance", "anomaly detection", "neural network", "deep learning"]
+      },
+      "sources": [
+        {"title": "ML Crash Course: classification metrics", "url": "https://developers.google.com/machine-learning/crash-course/classification"},
+        {"title": "ML Crash Course: overfitting", "url": "https://developers.google.com/machine-learning/crash-course/overfitting"},
+        {"title": "Rules of ML", "url": "https://developers.google.com/machine-learning/guides/rules-of-ml"}
+      ]
+    },
+    {
+      "id": "12_serving",
+      "title": "Serving models: endpoints, batch, scaling and rollouts",
+      "domains": ["4. Serving and scaling models"],
+      "minutes": 15,
+      "summary": "Online vs batch prediction, endpoint types, autoscaling, co-hosting, containers, Cloud Run/GKE, traffic splitting and edge.",
+      "match": {
+        "products": ["endpoint", "prediction", "cloud run", "kubernetes", "gke", "edge", "tensorflow lite", "firebase"],
+        "topics": ["model deployment", "model serving", "online prediction", "batch prediction", "inference", "latency", "autoscaling", "scalability", "traffic splitting", "a/b", "canary", "real-time", "edge", "model export", "throughput"]
+      },
+      "sources": [
+        {"title": "Predictions overview", "url": "https://docs.cloud.google.com/vertex-ai/docs/predictions/overview"},
+        {"title": "Choose an endpoint type", "url": "https://docs.cloud.google.com/vertex-ai/docs/predictions/choose-endpoint-type"},
+        {"title": "Batch predictions", "url": "https://docs.cloud.google.com/vertex-ai/docs/predictions/get-batch-predictions"},
+        {"title": "Model co-hosting", "url": "https://docs.cloud.google.com/vertex-ai/docs/predictions/model-co-hosting"},
+        {"title": "Optimized TensorFlow runtime", "url": "https://docs.cloud.google.com/vertex-ai/docs/predictions/optimized-tensorflow-runtime"}
+      ]
+    },
+    {
+      "id": "13_pipelines_mlops",
+      "title": "Pipelines, MLOps and CI/CD/CT",
+      "domains": ["5. Automating and orchestrating ML pipelines"],
+      "minutes": 15,
+      "summary": "Vertex AI Pipelines (KFP/TFX), caching, scheduling and triggers, Airflow, CI/CD with Cloud Build, MLOps maturity and retraining policies.",
+      "match": {
+        "products": ["pipelines", "kubeflow", "tfx", "tensorflow extended", "cloud build", "composer", "airflow", "cloud scheduler", "cloud functions", "artifact registry", "source repositories"],
+        "topics": ["pipeline", "mlops", "orchestration", "ci/cd", "automation", "retraining", "continuous training", "workflow", "scheduling", "model management"]
+      },
+      "sources": [
+        {"title": "Vertex AI Pipelines introduction", "url": "https://docs.cloud.google.com/vertex-ai/docs/pipelines/introduction"},
+        {"title": "Build a pipeline", "url": "https://docs.cloud.google.com/vertex-ai/docs/pipelines/build-pipeline"},
+        {"title": "Configure execution caching", "url": "https://docs.cloud.google.com/vertex-ai/docs/pipelines/configure-caching"},
+        {"title": "Schedule pipeline runs", "url": "https://docs.cloud.google.com/vertex-ai/docs/pipelines/schedule-pipeline-run"},
+        {"title": "Trigger a pipeline with Pub/Sub", "url": "https://docs.cloud.google.com/vertex-ai/docs/pipelines/trigger-pubsub"},
+        {"title": "MLOps: continuous delivery and automation pipelines", "url": "https://docs.cloud.google.com/architecture/mlops-continuous-delivery-and-automation-pipelines-in-machine-learning"}
+      ]
+    },
+    {
+      "id": "14_monitoring",
+      "title": "Model monitoring: skew, drift and alerting",
+      "domains": ["6. Monitoring AI solutions"],
+      "minutes": 12,
+      "summary": "Training-serving skew vs data drift vs concept drift, Model Monitoring v1 and v2, thresholds, alerting and what to do when it fires.",
+      "match": {
+        "products": ["model monitoring", "cloud monitoring", "cloud logging"],
+        "topics": ["monitoring", "drift", "skew", "alerting", "logging", "model decay", "data validation", "model performance"]
+      },
+      "sources": [
+        {"title": "Model Monitoring overview", "url": "https://docs.cloud.google.com/vertex-ai/docs/model-monitoring/overview"},
+        {"title": "Using Model Monitoring (v1)", "url": "https://docs.cloud.google.com/vertex-ai/docs/model-monitoring/using-model-monitoring"},
+        {"title": "MLOps: continuous delivery and automation pipelines", "url": "https://docs.cloud.google.com/architecture/mlops-continuous-delivery-and-automation-pipelines-in-machine-learning"}
+      ]
+    },
+    {
+      "id": "15_responsible_secure_ai",
+      "title": "Security, privacy and responsible AI",
+      "domains": ["6. Monitoring AI solutions", "2. Collaborating to manage data and models"],
+      "minutes": 14,
+      "summary": "PII and Sensitive Data Protection, IAM/VPC-SC/CMEK, explainability methods, fairness and bias, gen AI safety and Model Armor.",
+      "match": {
+        "products": ["dlp", "data loss prevention", "sensitive data protection", "explainable", "ai explanations", "vpc service controls", "iam", "identity and access", "fairness", "what-if", "model armor"],
+        "topics": ["privacy", "security", "pii", "compliance", "explainab", "interpretab", "feature attribution", "feature importance", "fairness", "bias", "responsible ai", "governance", "access control", "encryption"]
+      },
+      "sources": [
+        {"title": "Sensitive Data Protection overview", "url": "https://docs.cloud.google.com/sensitive-data-protection/docs/sensitive-data-protection-overview"},
+        {"title": "Explainable AI overview", "url": "https://docs.cloud.google.com/vertex-ai/docs/explainable-ai/overview"},
+        {"title": "Configure feature-based explanations", "url": "https://docs.cloud.google.com/vertex-ai/docs/explainable-ai/configuring-explanations-feature-based"},
+        {"title": "Responsible AI for generative AI", "url": "https://docs.cloud.google.com/vertex-ai/generative-ai/docs/learn/responsible-ai"},
+        {"title": "Vertex AI deprecations", "url": "https://docs.cloud.google.com/vertex-ai/docs/deprecations"}
+      ]
+    }
+  ]
+}

@@ -10,3 +10,6 @@ class Question(BaseModel):
     options: list[str]
     answer: int | list[int]  # index of the correct option
     explanation: str | None = None
+    ml_topics: list[str] | None = None
+    gcp_products: list[str] | None = None
+    gcp_topics: list[str] | None = None

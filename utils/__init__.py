@@ -75,3 +75,6 @@ def set_css_style(css_path: Path):
     with css_path.open("r", encoding="utf-8") as f:
         css = f.read()
     st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
+
+
+from utils.sections import section_filter as section_filter  # noqa: E402  (re-export)

@@ -16,12 +16,14 @@ def load_session():
     st.session_state.setdefault("quiz_mode_answered", False)
     st.session_state.setdefault("wrong_answered_inclusion", False)
     st.session_state.setdefault("quizzes", [])
+    st.session_state.setdefault("quiz_round_seed", 0)
 
     if cache.get("quiz_in_progress", False):
         st.session_state.quiz_in_progress = cache.get("quiz_in_progress", False)
         st.session_state.quizzes = [Question.model_validate(d) for d in cache.get("quizzes", [])]
         st.session_state.quiz_mode_pos = cache.get("quiz_mode_pos", 0)
         st.session_state.quiz_mode_round_progress = cache.get("quiz_mode_round_progress", {})
+        st.session_state.quiz_round_seed = cache.get("quiz_round_seed", 0)
 
 
 def cache_session():
@@ -30,10 +32,12 @@ def cache_session():
         cache.set("quizzes", [q.model_dump() for q in st.session_state.quizzes])
         cache.set("quiz_mode_pos", st.session_state.quiz_mode_pos)
         cache.set("quiz_mode_round_progress", st.session_state.quiz_mode_round_progress)
+        cache.set("quiz_round_seed", st.session_state.quiz_round_seed)
     else:
         cache.delete("quizzes")
         cache.delete("quiz_mode_pos")
         cache.delete("quiz_mode_round_progress")
+        cache.delete("quiz_round_seed")
 
 
 def clear_session_cache():
@@ -41,3 +45,4 @@ def clear_session_cache():
     cache.delete("quizzes")
     cache.delete("quiz_mode_pos")
     cache.delete("quiz_mode_round_progress")
+    cache.delete("quiz_round_seed")
