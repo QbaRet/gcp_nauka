@@ -10,5 +10,23 @@
  },
  "04_generative_ai": {
   "read": "2026-11-23"
+ },
+ "05_data_storage": {
+  "read": "2026-11-24"
+ },
+ "07_feature_store": {
+  "read": "2026-11-24"
+ },
+ "09_custom_training": {
+  "read": "2026-11-26"
+ },
+ "10_hardware_distributed": {
+  "read": "2026-11-26"
+ },
+ "11_ml_fundamentals": {
+  "read": "2026-11-27"
+ },
+ "08_notebooks_experiments": {
+  "read": "2026-11-27"
  }
 }

@@ -293,8 +293,10 @@ def show_flashcard(state: dict, card: Card):
             render_question(q)
             order = option_order(q, state["seed"], st.session_state.shuffle_now)
             labels = option_labels(q, order)
-            for o in order:
-                st.markdown(f"- {labels[o]}")
+            if not st.session_state.learn_revealed:  # once revealed, render_answer shows the options
+                for o in order:
+                    with st.container(border=True):
+                        st.markdown(labels[o])
         if st.session_state.learn_revealed:
             st.divider()
             if card.is_product:

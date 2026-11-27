@@ -1,3 +1,25 @@
 .stMainBlockContainer p {
     font-size: 120%;
 }
+/* Answer options drawn as separate cards (container key "answeropts_*" in utils/study.py) */
+[class*="st-key-answeropts"] div[role="radiogroup"] {
+    gap: 0.5rem;
+    width: 100%;
+}
+[class*="st-key-answeropts"] div[role="radiogroup"] > label,
+[class*="st-key-answeropts"] [data-testid="stCheckbox"] > label {
+    width: 100%;
+    padding: 0.6rem 0.8rem;
+    border: 1px solid rgba(128, 128, 128, 0.35);
+    border-radius: 0.5rem;
+    margin: 0;
+}
+[class*="st-key-answeropts"] div[role="radiogroup"] > label:hover,
+[class*="st-key-answeropts"] [data-testid="stCheckbox"] > label:hover {
+    border-color: rgba(128, 128, 128, 0.8);
+}
+[class*="st-key-answeropts"] div[role="radiogroup"] > label:has(input:checked),
+[class*="st-key-answeropts"] [data-testid="stCheckbox"] > label:has(input:checked) {
+    border-color: #ff4b4b;
+    background: rgba(255, 75, 75, 0.06);
+}

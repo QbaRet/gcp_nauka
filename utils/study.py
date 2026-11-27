@@ -213,11 +213,29 @@ def option_order(q: Question, seed, shuffle: bool) -> list[int]:
     return order
 
 
+_FIRST_STEP = re.compile(r"^1[.)]\s")
+_NEXT_STEP = re.compile(r"(?<=[.;:])\s+(?=[2-9][.)]\s)")  # " 2. " right after the end of the previous step
+_STEP_INDENT = "\u2003\u2003"  # aligns "2. ..." under "1. ..." after the "A." prefix
+
+
+def tidy_option(text: str) -> str:
+    """One line per step: "1. ...\n\n2. ..." becomes markdown hard breaks, continuation lines indented."""
+    text = text.strip()
+    if _FIRST_STEP.match(text):  # "1. Do X. 2. Do Y." on one line -> one step per line
+        text = _NEXT_STEP.sub("\n", text)
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    return "  \n".join([lines[0], *(_STEP_INDENT + line for line in lines[1:])]) if lines else ""
+
+
 def option_labels(q: Question, order: list[int]) -> dict[int, str]:
     """Original index -> label shown to the user (relettered when the order changed)."""
-    if order == sorted(order):
-        return {i: q.options[i] for i in order}
-    return {orig: f"{chr(65 + pos)}. {strip_letter(q.options[orig])}" for pos, orig in enumerate(order)}
+    shuffled = order != sorted(order)
+    return {
+        orig: f"{chr(65 + (pos if shuffled else orig))}. {tidy_option(strip_letter(q.options[orig]))}"
+        if shuffled or _LETTER_PREFIX.match(q.options[orig])
+        else tidy_option(q.options[orig])
+        for pos, orig in enumerate(order)
+    }
 
 
 def correct_set(q: Question) -> set[int]:
@@ -236,12 +254,23 @@ def answer_input(q: Question, order: list[int], key: str, disabled: bool = False
     """Radio (single choice) or checkboxes (multiple choice). Returns chosen original indexes."""
     labels = option_labels(q, order)
     default = set(default or [])
-    if q.mode == "single_choice":
-        idx = next((pos for pos, o in enumerate(order) if o in default), None)
-        choice = st.radio("Choose an answer:", order, index=idx, format_func=labels.get, key=key, disabled=disabled)
-        return {choice} if choice is not None else set()
-    st.markdown(f"Choose **{len(correct_set(q))}** answers:")
-    return {o for o in order if st.checkbox(labels[o], value=o in default, key=f"{key}_{o}", disabled=disabled)}
+    # the "answeropts" key gives the container a CSS class (see style.css) that draws each option as a card
+    with st.container(key=f"answeropts_{key}"):
+        if q.mode == "single_choice":
+            idx = next((pos for pos, o in enumerate(order) if o in default), None)
+            choice = st.radio("Choose an answer:", order, index=idx, format_func=labels.get, key=key, disabled=disabled)
+            return {choice} if choice is not None else set()
+        st.markdown(f"Choose **{len(correct_set(q))}** answers:")
+        return {o for o in order if st.checkbox(labels[o], value=o in default, key=f"{key}_{o}", disabled=disabled)}
+
+
+def _styled(label: str, fmt: str) -> str:
+    """Apply an inline markdown format to every line of a (possibly multi-line) label."""
+    lines = label.split("  \n")
+    # keep the step indent outside the markers: "** text**" (space after **) is not valid markdown
+    return "  \n".join(
+        line[: len(line) - len(line.lstrip(_STEP_INDENT))] + fmt.format(line.lstrip(_STEP_INDENT)) for line in lines
+    )
 
 
 def render_answer(q: Question, order: list[int], chosen: set[int] | None = None, explanation: bool = True):
@@ -249,12 +278,13 @@ def render_answer(q: Question, order: list[int], chosen: set[int] | None = None,
     labels = option_labels(q, order)
     correct = correct_set(q)
     for o in order:
-        if o in correct:
-            st.markdown(f":green[**✔ {labels[o]}**]")
-        elif chosen and o in chosen:
-            st.markdown(f":red[✘ ~~{labels[o]}~~]")
-        else:
-            st.markdown(f":gray[{labels[o]}]")
+        with st.container(border=True):
+            if o in correct:
+                st.markdown("✔ " + _styled(labels[o], ":green[**{}**]"))
+            elif chosen and o in chosen:
+                st.markdown("✘ " + _styled(labels[o], ":red[~~{}~~]"))
+            else:
+                st.markdown(_styled(labels[o], ":gray[{}]"))
     if order != sorted(order):
         mapping = ", ".join(f"{chr(65 + o)}→{chr(65 + pos)}" for pos, o in sorted(enumerate(order), key=lambda x: x[1]))
         st.caption(f"Options were shuffled. Letters in the explanation use the original order: {mapping}")
